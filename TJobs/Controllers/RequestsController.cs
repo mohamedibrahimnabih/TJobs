@@ -63,7 +63,7 @@ namespace TJobs.Controllers
             return CreatedAtAction(nameof(Get), new { id = requestCreated.Entity.Id }, requestCreated.Entity.Adapt<RequestResponse>());
         }
 
-        [HttpPatch("{id}")]
+        [HttpPut("{id}")]
         public IActionResult Update([FromRoute] int id, [FromForm] RequestRequestUpdate requestRequest)
         {
             var requestInDb = _context.Requests.Find(id);

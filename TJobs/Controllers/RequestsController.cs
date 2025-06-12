@@ -1,11 +1,5 @@
 ﻿using Mapster;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TJobs.Data;
-using TJobs.DTOs.Request;
-using TJobs.DTOs.Response;
-using TJobs.Models;
 
 namespace TJobs.Controllers
 {

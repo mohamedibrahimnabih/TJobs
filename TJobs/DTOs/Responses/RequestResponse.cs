@@ -1,6 +1,4 @@
-﻿using TJobs.Models;
-
-namespace TJobs.DTOs.Response
+﻿namespace TJobs.DTOs.Responses
 {
     public class RequestResponse
     {

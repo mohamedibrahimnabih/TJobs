@@ -1,11 +1,11 @@
-﻿namespace TJobs.DTOs.Request
+﻿namespace TJobs.DTOs.Requests
 {
-    public class RequestRequest
+    public class RequestRequestUpdate
     {
         public string Title { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public DateTime DateTime { get; set; }
-        public IFormFile MainImg { get; set; } = null!;
+        public IFormFile? MainImg { get; set; }
 
 
         public string State { get; set; } = string.Empty;

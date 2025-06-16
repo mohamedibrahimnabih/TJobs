@@ -4,8 +4,7 @@ namespace TJobs.DTOs.Requests
 {
     public class ResetPasswordRequest
     {
-        public string UserId { get; set; } = null!;
-        public string Token { get; set; } = null!;
+        public string Code { get; set; } = null!;
         [Required]
         [DataType(DataType.EmailAddress)]
         public string Email { get; set; } = null!;

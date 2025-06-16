@@ -50,9 +50,12 @@ namespace TJobs
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                     options.UseSqlServer("Data Source=.;Initial Catalog=TJobs;Integrated Security=True;TrustServerCertificate=True"));
 
-            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-                            .AddEntityFrameworkStores<ApplicationDbContext>()
-                            .AddDefaultTokenProviders();
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+            {
+                options.SignIn.RequireConfirmedEmail = false;
+            })
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
 
             builder.Services.AddTransient<IEmailSender, EmailSender>();
             builder.Services.AddScoped<IDbInitializer, DbInitializer>();

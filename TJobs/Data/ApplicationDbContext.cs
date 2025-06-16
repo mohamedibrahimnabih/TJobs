@@ -12,5 +12,6 @@ namespace TJobs.Data
 
         public DbSet<Request> Requests { get; set; }
         public DbSet<RequestImage> RequestImages { get; set; }
+        public DbSet<PasswordResetCode> PasswordResetCodes { get; set; }
     }
 }

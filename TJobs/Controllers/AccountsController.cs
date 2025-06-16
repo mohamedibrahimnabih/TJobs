@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using TJobs.DTOs.Requests;
 
 namespace TJobs.Controllers
 {
@@ -18,16 +20,18 @@ namespace TJobs.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IEmailSender _emailSender;
+        private readonly ApplicationDbContext _context;
 
-        public AccountsController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IEmailSender emailSender)
+        public AccountsController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IEmailSender emailSender, ApplicationDbContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _emailSender = emailSender;
+            _context = context;
         }
 
         [HttpPost("Register")]
-        public async Task<IActionResult> Register(RegisterRequest registerRequest)
+        public async Task<IActionResult> Register([FromBody] RegisterRequest registerRequest)
         {
             //ApplicationUser applicationUser = new()
             //{
@@ -60,7 +64,7 @@ namespace TJobs.Controllers
         }
 
         [HttpPost("Login")]
-        public async Task<IActionResult> Login(LoginRequest loginRequest)
+        public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
         {
             var applicationUser = await _userManager.FindByEmailAsync(loginRequest.EmailOrUserName);
             ModelStateDictionary keyValuePairs = new();
@@ -159,7 +163,7 @@ namespace TJobs.Controllers
         }
 
         [HttpPost("ResendEmail")]
-        public async Task<IActionResult> ResendEmail(ResendEmailRequest resendEmailRequest)
+        public async Task<IActionResult> ResendEmail([FromBody] ResendEmailRequest resendEmailRequest)
         {
             var applicationUser = await _userManager.FindByEmailAsync(resendEmailRequest.EmailOrUserName);
             ModelStateDictionary keyValuePairs = new();
@@ -197,7 +201,7 @@ namespace TJobs.Controllers
         }
 
         [HttpPost("ForgetPassword")]
-        public async Task<IActionResult> ForgetPassword(ForgetPasswordRequest forgetPasswordRequest)
+        public async Task<IActionResult> ForgetPassword([FromBody] ForgetPasswordRequest forgetPasswordRequest)
         {
             var applicationUser = await _userManager.FindByEmailAsync(forgetPasswordRequest.EmailOrUserName);
             ModelStateDictionary keyValuePairs = new();
@@ -209,12 +213,20 @@ namespace TJobs.Controllers
 
             if (applicationUser is not null)
             {
+                var code = new Random().Next(1000, 9999).ToString();
 
-                var token = await _userManager.GeneratePasswordResetTokenAsync(applicationUser);
+                _context.PasswordResetCodes.Add(new()
+                {
+                    ApplicationUserId = applicationUser.Id,
+                    Code = code,
+                    ExpirationCode = DateTime.UtcNow.AddHours(24)
+                });
 
-                var resetPasswordLink = Url.Action("ResetPassword", "Accounts", new { userId = applicationUser.Id, token, email = applicationUser.Email }, Request.Scheme);
+                await _emailSender.SendEmailAsync(applicationUser!.Email ?? "none", "Reset The Password", $"<h1>Please Reset Your Password Using This Code {code}");
 
-                await _emailSender.SendEmailAsync(applicationUser!.Email ?? "none", "Reset Password", $"Please Reset Your Account Password By Clicking <a href='{resetPasswordLink}'>Here</a>");
+                //var resetPasswordLink = Url.Action("ResetPassword", "Accounts", new { userId = applicationUser.Id, token, email = applicationUser.Email }, Request.Scheme);
+
+                //await _emailSender.SendEmailAsync(applicationUser!.Email ?? "none", "Reset Password", $"Please Reset Your Account Password By Clicking <a href='{resetPasswordLink}'>Here</a>");
 
                 return NoContent();
 
@@ -226,25 +238,34 @@ namespace TJobs.Controllers
         }
 
         [HttpPost("ConfirmResetPassword")]
-        public async Task<IActionResult> ConfirmResetPassword(ResetPasswordRequest resetPasswordRequest)
+        public async Task<IActionResult> ConfirmResetPassword([FromBody] ResetPasswordRequest resetPasswordRequest)
         {
             var applicationUser = await _userManager.FindByEmailAsync(resetPasswordRequest.Email);
             ModelStateDictionary keyValuePairs = new();
 
-            if (applicationUser != null && applicationUser.Id == resetPasswordRequest.UserId)
+            if (applicationUser != null)
             {
-                var result = await _userManager.ResetPasswordAsync(applicationUser, resetPasswordRequest.Token, resetPasswordRequest.Password);
+                var resetCode = _context.PasswordResetCodes.Where(e => e.ApplicationUserId == applicationUser.Id).OrderByDescending(e => e.ExpirationCode).FirstOrDefault();
 
-                if (result.Succeeded)
+                if (resetCode is not null && resetCode.Code == resetPasswordRequest.Code && resetCode.ExpirationCode > DateTime.UtcNow)
                 {
-                    await _emailSender.SendEmailAsync(resetPasswordRequest.Email, "Reset Password Successfully", $"Reset Password Successfully");
+                    var token = await _userManager.GeneratePasswordResetTokenAsync(applicationUser);
+                    var result = await _userManager.ResetPasswordAsync(applicationUser, token, resetPasswordRequest.Password);
 
-                    return NoContent();
+                    if (result.Succeeded)
+                    {
+                        await _emailSender.SendEmailAsync(resetPasswordRequest.Email, "Reset Password Successfully", $"Reset Password Successfully");
+
+                        return NoContent();
+                    }
+                    else
+                    {
+                        return BadRequest(result.Errors);
+                    }
                 }
-                else
-                {
-                    return BadRequest(result.Errors);
-                }
+
+                keyValuePairs.AddModelError("Error In Code", "InvalidForgetPasswordCode");
+                return BadRequest(keyValuePairs);
             }
 
             keyValuePairs.AddModelError("Email", "Invalid Email");
@@ -258,7 +279,7 @@ namespace TJobs.Controllers
 
             if (applicationUser is not null)
             {
-                if (!applicationUser.LockoutEnabled && applicationUser.LockoutEnd > DateTime.Now)
+                if (!applicationUser.LockoutEnabled && applicationUser.LockoutEnd > DateTime.UtcNow)
                 {
                     applicationUser.LockoutEnabled = true;
                     applicationUser.LockoutEnd = null;
@@ -266,7 +287,7 @@ namespace TJobs.Controllers
                 else if (applicationUser.LockoutEnabled)
                 {
                     applicationUser.LockoutEnabled = false;
-                    applicationUser.LockoutEnd = DateTime.Now.AddMonths(1);
+                    applicationUser.LockoutEnd = DateTime.UtcNow.AddMonths(1);
                 }
 
                 await _userManager.UpdateAsync(applicationUser);

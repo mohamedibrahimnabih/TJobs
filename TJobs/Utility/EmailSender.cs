@@ -12,11 +12,11 @@ namespace TJobs.Utility
             {
                 EnableSsl = true,
                 UseDefaultCredentials = false,
-                Credentials = new NetworkCredential("mohamedashrafmahmoudgad@gmail.com", "zwxo rtql zjmb tgpw")
+                Credentials = new NetworkCredential("anasmarii245@gmail.com", "lwsq qfsz xpfm fzgi")
             };
 
             return client.SendMailAsync(
-                new MailMessage(from: "mohamedashrafmahmoudgad@gmail.com",
+                new MailMessage(from: "anasmarii245@gmail.com",
                                 to: email,
                                 subject,
                                 message

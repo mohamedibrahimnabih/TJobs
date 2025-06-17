@@ -28,5 +28,8 @@ namespace TJobs.DTOs.Requests
 
         [Required]
         public int Age { get; set; }
+        public string SSN { get; set; }
+        public UserType UserType { get; set; }
+
     }
 }

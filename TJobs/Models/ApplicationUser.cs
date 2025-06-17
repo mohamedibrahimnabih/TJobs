@@ -8,6 +8,12 @@ namespace TJobs.Models
         Female
     }
 
+    public enum UserType {
+        Worker,
+        Employer,
+        Guest
+    }
+
     public class ApplicationUser : IdentityUser
     {
         public string? State { get; set; }
@@ -17,5 +23,7 @@ namespace TJobs.Models
         public string LastName { get; set; } = string.Empty;
         public ApplicationUserGender Gender { get; set; }
         public DateOnly BirthOfDate { get; set; }
+        public string SSN { get; set; }
+        public UserType UserType { get; set; }
     }
 }

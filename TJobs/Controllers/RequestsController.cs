@@ -138,5 +138,13 @@ namespace TJobs.Controllers
 
             return NotFound();
         }
+
+        [HttpGet("Filter")]
+        public IActionResult FilterProducts([FromBody] FilterProductRequest filterProductRequest)
+        {
+            var requests = _context.Requests.Where(e => e.City == filterProductRequest.City && e.Type == filterProductRequest.Type && e.PublishDateTime == filterProductRequest.DateTime);
+
+            return Ok(requests.Adapt<List<RequestResponse>>());
+        }
     }
 }

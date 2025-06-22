@@ -53,7 +53,12 @@ namespace TJobs.Controllers
 
                 await _emailSender.SendEmailAsync(registerRequest.Email, "Confirmation Your Account", $"Please Confirm Your Account By Clicking <a href='{confirmationLink}'>Here</a>");
 
-                await _userManager.AddToRoleAsync(applicationUser, SD.Customer);
+                if(registerRequest.UserType == UserType.Worker)
+                    await _userManager.AddToRoleAsync(applicationUser, SD.Worker);
+                else if(registerRequest.UserType == UserType.Employer)
+                    await _userManager.AddToRoleAsync(applicationUser, SD.Employer);
+                else
+                    await _userManager.AddToRoleAsync(applicationUser, SD.Guest);
 
                 return Created();
             }
@@ -270,31 +275,6 @@ namespace TJobs.Controllers
 
             keyValuePairs.AddModelError("Email", "Invalid Email");
             return BadRequest(keyValuePairs);
-        }
-
-        [HttpPatch("LockUnLock/{id}")]
-        public async Task<IActionResult> LockUnLock(string id)
-        {
-            var applicationUser = await _userManager.FindByIdAsync(id);
-
-            if (applicationUser is not null)
-            {
-                if (!applicationUser.LockoutEnabled && applicationUser.LockoutEnd > DateTime.UtcNow)
-                {
-                    applicationUser.LockoutEnabled = true;
-                    applicationUser.LockoutEnd = null;
-                }
-                else if (applicationUser.LockoutEnabled)
-                {
-                    applicationUser.LockoutEnabled = false;
-                    applicationUser.LockoutEnd = DateTime.UtcNow.AddMonths(1);
-                }
-
-                await _userManager.UpdateAsync(applicationUser);
-                return NoContent();
-            }
-
-            return NotFound();
         }
 
         [HttpPost("ExternalLogin")]

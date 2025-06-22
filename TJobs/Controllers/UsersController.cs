@@ -50,5 +50,30 @@ namespace TJobs.Controllers
             return Ok(usersResponse);
         }
 
+        [HttpPatch("LockUnLock/{id}")]
+        public async Task<IActionResult> LockUnLock(string id)
+        {
+            var applicationUser = await _userManager.FindByIdAsync(id);
+
+            if (applicationUser is not null)
+            {
+                if (!applicationUser.LockoutEnabled && applicationUser.LockoutEnd > DateTime.UtcNow)
+                {
+                    applicationUser.LockoutEnabled = true;
+                    applicationUser.LockoutEnd = null;
+                }
+                else if (applicationUser.LockoutEnabled)
+                {
+                    applicationUser.LockoutEnabled = false;
+                    applicationUser.LockoutEnd = DateTime.UtcNow.AddMonths(1);
+                }
+
+                await _userManager.UpdateAsync(applicationUser);
+                return NoContent();
+            }
+
+            return NotFound();
+        }
+
     }
 }

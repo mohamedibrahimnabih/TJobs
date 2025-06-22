@@ -4,6 +4,8 @@
     {
         public const string SuperAdmin = "SuperAdmin";
         public const string Admin = "Admin";
-        public const string Customer = "Customer";
+        public const string Worker = "Worker";
+        public const string Employer = "Employer";
+        public const string Guest = "Guest";
     }
 }

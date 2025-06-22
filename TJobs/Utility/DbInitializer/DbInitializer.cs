@@ -30,7 +30,9 @@ namespace TJobs.Utility.DbInitializer
                 {
                     _roleManager.CreateAsync(new(SD.SuperAdmin)).GetAwaiter().GetResult();
                     _roleManager.CreateAsync(new(SD.Admin)).GetAwaiter().GetResult();
-                    _roleManager.CreateAsync(new(SD.Customer)).GetAwaiter().GetResult();
+                    _roleManager.CreateAsync(new(SD.Worker)).GetAwaiter().GetResult();
+                    _roleManager.CreateAsync(new(SD.Employer)).GetAwaiter().GetResult();
+                    _roleManager.CreateAsync(new(SD.Guest)).GetAwaiter().GetResult();
 
                     _userManager.CreateAsync(new()
                     {

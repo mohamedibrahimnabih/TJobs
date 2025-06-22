@@ -1,27 +1,21 @@
-﻿using Mapster;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 
-namespace TJobs.Controllers
+namespace TJobs.Areas.Admin.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/[area]/[controller]")]
+    [Area("Admin")]
     [ApiController]
     public class UsersController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly IEmailSender _emailSender;
         private readonly ApplicationDbContext _context;
 
-        public UsersController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IEmailSender emailSender, ApplicationDbContext context)
+        public UsersController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
-            _emailSender = emailSender;
             _context = context;
+            _userManager = userManager;
         }
 
         [HttpGet("")]
@@ -39,8 +33,11 @@ namespace TJobs.Controllers
                 {
                     FirstName = user.FirstName,
                     LastName = user.LastName,
-                    Email = user.Email,
-                    LockoutEnabled = user.LockoutEnabled.ToString(),
+                    Email = user.Email ?? "",
+                    City = user.City,
+                    State = user.State,
+                    Street = user.Street,
+                    SSN = user.SSN,
                     Roles = roles.ToList()
                 };
 

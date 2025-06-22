@@ -12,8 +12,8 @@ using TJobs.Data;
 namespace TJobs.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250616165249_AddPasswordResetCodes")]
-    partial class AddPasswordResetCodes
+    [Migration("20250622110141_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -217,6 +217,9 @@ namespace TJobs.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<string>("SSN")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
@@ -232,6 +235,9 @@ namespace TJobs.Migrations
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("UserType")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -280,6 +286,10 @@ namespace TJobs.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("City")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -304,12 +314,15 @@ namespace TJobs.Migrations
                     b.Property<DateTime>("PublishDateTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("RequestStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RequestTypeId")
+                        .HasColumnType("int");
+
                     b.Property<string>("State")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("Status")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Street")
                         .IsRequired()
@@ -323,6 +336,10 @@ namespace TJobs.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("RequestTypeId");
 
                     b.ToTable("Requests");
                 });
@@ -347,6 +364,23 @@ namespace TJobs.Migrations
                     b.HasIndex("RequestId");
 
                     b.ToTable("RequestImages");
+                });
+
+            modelBuilder.Entity("TJobs.Models.RequestType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RequestTypes");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -411,6 +445,25 @@ namespace TJobs.Migrations
                     b.Navigation("ApplicationUser");
                 });
 
+            modelBuilder.Entity("TJobs.Models.Request", b =>
+                {
+                    b.HasOne("TJobs.Models.ApplicationUser", "ApplicationUser")
+                        .WithMany("Requests")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TJobs.Models.RequestType", "RequestType")
+                        .WithMany("Requests")
+                        .HasForeignKey("RequestTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
+
+                    b.Navigation("RequestType");
+                });
+
             modelBuilder.Entity("TJobs.Models.RequestImage", b =>
                 {
                     b.HasOne("TJobs.Models.Request", "Request")
@@ -422,9 +475,19 @@ namespace TJobs.Migrations
                     b.Navigation("Request");
                 });
 
+            modelBuilder.Entity("TJobs.Models.ApplicationUser", b =>
+                {
+                    b.Navigation("Requests");
+                });
+
             modelBuilder.Entity("TJobs.Models.Request", b =>
                 {
                     b.Navigation("RequestImages");
+                });
+
+            modelBuilder.Entity("TJobs.Models.RequestType", b =>
+                {
+                    b.Navigation("Requests");
                 });
 #pragma warning restore 612, 618
         }

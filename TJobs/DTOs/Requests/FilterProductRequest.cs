@@ -2,8 +2,8 @@
 {
     public class FilterProductRequest
     {
-        public string Type { get; set; }
-        public string City { get; set; }
-        public DateTime DateTime { get; set; }
+        public int RequestTypeId { get; set; }
+        public string City { get; set; } = string.Empty;
+        public string DateRange { get; set; } = string.Empty;
     }
 }

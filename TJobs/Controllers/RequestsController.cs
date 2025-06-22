@@ -1,5 +1,6 @@
 ﻿using Mapster;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace TJobs.Controllers
 {
@@ -18,7 +19,7 @@ namespace TJobs.Controllers
         [HttpGet("")]
         public IActionResult GetAll()
         {
-            var requests = _context.Requests;
+            var requests = _context.Requests.Include(e => e.RequestType);
 
             return Ok(requests.Adapt<List<RequestResponse>>());
         }
@@ -26,114 +27,14 @@ namespace TJobs.Controllers
         [HttpGet("{id}")]
         public IActionResult Get([FromRoute] int id)
         {
-            var request = _context.Requests.Find(id);
+            var request = _context.Requests.Include(e=>e.RequestType).FirstOrDefault(e=>e.Id == id);
 
             if(request is not null)
             {
+                request.Traffic++;
+                _context.SaveChanges();
+
                 return Ok(request.Adapt<RequestResponse>());
-            }
-
-            return NotFound();
-        }
-
-        [HttpPost("")]
-        public IActionResult Create([FromForm] RequestRequest requestRequest)
-        {
-            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(requestRequest.MainImg.FileName);
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\images", fileName);
-
-            using (var stream = System.IO.File.Create(filePath))
-            {
-                requestRequest.MainImg.CopyTo(stream);
-            }
-
-            var requestCreated = _context.Requests.Add(requestRequest.Adapt<Request>());
-            requestCreated.Entity.PublishDateTime = DateTime.UtcNow;
-            requestCreated.Entity.MainImg = filePath;
-
-            _context.SaveChanges();
-
-            //return Created($"https://localhost:7124/api/Requests/{requestCreated.Entity.Id}", requestCreated.Entity);
-            return CreatedAtAction(nameof(Get), new { id = requestCreated.Entity.Id }, requestCreated.Entity.Adapt<RequestResponse>());
-        }
-
-        [HttpPut("{id}")]
-        public IActionResult Update([FromRoute] int id, [FromForm] RequestRequestUpdate requestRequest)
-        {
-            var requestInDb = _context.Requests.Find(id);
-
-            if(requestInDb is not null)
-            {
-                if (requestRequest.MainImg is not null && requestRequest.MainImg.Length > 0)
-                {
-                    // Create New Img
-                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(requestRequest.MainImg.FileName);
-                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\images", fileName);
-
-                    using (var stream = System.IO.File.Create(filePath))
-                    {
-                        requestRequest.MainImg.CopyTo(stream);
-                    }
-
-                    // Delete Old Img
-                    if (System.IO.File.Exists(requestInDb.MainImg))
-                    {
-                        System.IO.File.Delete(requestInDb.MainImg);
-                    }
-
-                    requestInDb.MainImg = filePath;
-                }
-
-                requestInDb.Title = requestRequest.Title;
-                requestInDb.Price = requestRequest.Price;
-                requestInDb.DateTime = requestRequest.DateTime;
-                requestInDb.Street = requestRequest.Street;
-                requestInDb.City = requestRequest.City;
-                requestInDb.State = requestRequest.State;
-                requestInDb.Home = requestRequest.Home;
-                requestInDb.Description = requestRequest.Description;
-
-                _context.SaveChanges();
-
-                return NoContent();
-            }
-
-            return NotFound();
-        }
-
-        [HttpDelete("{id}")]
-        public IActionResult Delete([FromRoute] int id)
-        {
-            var requestInDb = _context.Requests.Find(id);
-
-            if (requestInDb is not null)
-            {
-                _context.Remove(requestInDb);
-                _context.SaveChanges();
-
-                // Delete Old Img
-                if (System.IO.File.Exists(requestInDb.MainImg))
-                {
-                    System.IO.File.Delete(requestInDb.MainImg);
-                }
-
-                return NoContent();
-            }
-
-            return NotFound();
-        }
-
-        [HttpPatch("UpdateStatus/{id}")]
-        public IActionResult UpdateStatus([FromRoute] int id)
-        {
-            var requestInDb = _context.Requests.Find(id);
-
-            if (requestInDb is not null)
-            {
-                requestInDb.Status = !requestInDb.Status;
-                _context.SaveChanges();
-
-                return NoContent();
             }
 
             return NotFound();
@@ -142,9 +43,42 @@ namespace TJobs.Controllers
         [HttpGet("Filter")]
         public IActionResult FilterProducts([FromBody] FilterProductRequest filterProductRequest)
         {
-            var requests = _context.Requests.Where(e => e.City == filterProductRequest.City && e.Type == filterProductRequest.Type && e.PublishDateTime == filterProductRequest.DateTime);
+            var query = _context.Requests.AsQueryable();
 
-            return Ok(requests.Adapt<List<RequestResponse>>());
+            if (!string.IsNullOrEmpty(filterProductRequest.City) && filterProductRequest.City != "الكل")
+                query = query.Where(r => r.City == filterProductRequest.City);
+
+            if (filterProductRequest.RequestTypeId > 0)
+                query = query.Where(r => r.RequestTypeId == filterProductRequest.RequestTypeId);
+
+            if (!string.IsNullOrEmpty(filterProductRequest.DateRange))
+            {
+                var now = DateTime.UtcNow;
+
+                switch (filterProductRequest.DateRange)
+                {
+                    case "اليوم":
+                        query = query.Where(r => r.PublishDateTime >= now.Date);
+                        break;
+
+                    case "آخر 3 أيام":
+                        query = query.Where(r => r.PublishDateTime >= now.AddDays(-3));
+                        break;
+
+                    case "آخر أسبوع":
+                        query = query.Where(r => r.PublishDateTime >= now.AddDays(-7));
+                        break;
+
+                    case "أي وقت":
+                    default:
+                        // مافيش فلترة على الوقت
+                        break;
+                }
+            }
+
+            var results = query.ToList();
+            return Ok(results.Adapt<List<RequestResponse>>());
         }
+
     }
 }

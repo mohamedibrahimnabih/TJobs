@@ -9,6 +9,8 @@ namespace TJobs.Models
     }
 
     public enum UserType {
+        SuperAdmin,
+        Admin,
         Worker,
         Employer,
         Guest
@@ -23,7 +25,8 @@ namespace TJobs.Models
         public string LastName { get; set; } = string.Empty;
         public ApplicationUserGender Gender { get; set; }
         public DateOnly BirthOfDate { get; set; }
-        public string SSN { get; set; }
+        public string? SSN { get; set; }
         public UserType UserType { get; set; }
+        public List<Request>? Requests { get; set; }
     }
 }

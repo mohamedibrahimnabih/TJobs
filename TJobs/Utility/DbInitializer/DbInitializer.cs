@@ -25,36 +25,37 @@ namespace TJobs.Utility.DbInitializer
                 {
                     _context.Database.Migrate();
                 }
-
-                if (_roleManager.Roles is not null)
-                {
-                    _roleManager.CreateAsync(new(SD.SuperAdmin)).GetAwaiter().GetResult();
-                    _roleManager.CreateAsync(new(SD.Admin)).GetAwaiter().GetResult();
-                    _roleManager.CreateAsync(new(SD.Worker)).GetAwaiter().GetResult();
-                    _roleManager.CreateAsync(new(SD.Employer)).GetAwaiter().GetResult();
-                    _roleManager.CreateAsync(new(SD.Guest)).GetAwaiter().GetResult();
-
-                    _userManager.CreateAsync(new()
-                    {
-                        UserName = "SuperAdmin",
-                        Email = "SuperAdmin@gmail.com",
-                        FirstName = "Super",
-                        LastName = "Admin",
-                        Gender = ApplicationUserGender.Male,
-                        BirthOfDate = new DateOnly(1999, 1, 1),
-                    }, "Admin123*").GetAwaiter().GetResult();
-
-                    var user = _userManager.FindByEmailAsync("SuperAdmin@gmail.com").GetAwaiter().GetResult();
-
-                    if (user is not null)
-                    {
-                        _userManager.AddToRoleAsync(user, "SuperAdmin").GetAwaiter().GetResult();
-                    }
-                }
             }
             catch(Exception ex)
             {
                 Console.WriteLine(ex.Message);
+            }
+
+            if (_roleManager.Roles is not null)
+            {
+                _roleManager.CreateAsync(new(SD.SuperAdmin)).GetAwaiter().GetResult();
+                _roleManager.CreateAsync(new(SD.Admin)).GetAwaiter().GetResult();
+                _roleManager.CreateAsync(new(SD.Worker)).GetAwaiter().GetResult();
+                _roleManager.CreateAsync(new(SD.Employer)).GetAwaiter().GetResult();
+                _roleManager.CreateAsync(new(SD.Guest)).GetAwaiter().GetResult();
+
+                _userManager.CreateAsync(new()
+                {
+                    UserName = "SuperAdmin",
+                    Email = "SuperAdmin@gmail.com",
+                    FirstName = "Super",
+                    LastName = "Admin",
+                    Gender = ApplicationUserGender.Male,
+                    BirthOfDate = new DateOnly(1999, 1, 1),
+                    UserType = UserType.SuperAdmin
+                }, "Admin123*").GetAwaiter().GetResult();
+
+                var user = _userManager.FindByEmailAsync("SuperAdmin@gmail.com").GetAwaiter().GetResult();
+
+                if (user is not null)
+                {
+                    _userManager.AddToRoleAsync(user, SD.SuperAdmin).GetAwaiter().GetResult();
+                }
             }
         }
     }

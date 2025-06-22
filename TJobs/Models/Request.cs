@@ -1,11 +1,19 @@
 ﻿namespace TJobs.Models
 {
+    public enum RequestStatus
+    {
+        Pending, 
+        Active,
+        Expired,
+        NotAccepted
+    }
+
     public class Request
     {
         public int Id { get; set; }
         public string Title { get; set; } = string.Empty;
+        public RequestStatus RequestStatus { get; set; }
         public decimal Price { get; set; }
-        public bool Status { get; set; }
         public DateTime DateTime { get; set; }
         public DateTime PublishDateTime { get; set; }
         public string MainImg { get; set; } = string.Empty;
@@ -15,12 +23,16 @@
         public string City { get; set; } = string.Empty;
         public string Street { get; set; } = string.Empty;
         public string Home { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
 
-
+       
         public string? Description { get; set; }
         public int Traffic { get; set; }
-
         public List<RequestImage>? RequestImages { get; set; }
+
+        public int RequestTypeId { get; set; }
+        public RequestType RequestType { get; set; } = null!;
+
+        public string ApplicationUserId { get; set; } = string.Empty;
+        public ApplicationUser ApplicationUser { get; set; } = null!;
     }
 }

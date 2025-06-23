@@ -43,6 +43,7 @@ namespace TJobs.Areas.Employer.Controllers
 
             var userResponse = new UserResponse
             {
+                Id = user.Id,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Email = user.Email ?? "",

@@ -23,7 +23,6 @@
         public string City { get; set; } = string.Empty;
         public string Street { get; set; } = string.Empty;
         public string Home { get; set; } = string.Empty;
-
        
         public string? Description { get; set; }
         public int Traffic { get; set; }

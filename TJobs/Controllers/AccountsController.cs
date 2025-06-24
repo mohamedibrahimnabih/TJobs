@@ -84,41 +84,48 @@ namespace TJobs.Controllers
                 if (applicationUser.LockoutEnabled)
                 {
 
-                    var result = await _userManager.CheckPasswordAsync(applicationUser, loginRequest.Password);
-
-                    if (result)
+                    if (!applicationUser.EmailConfirmed)
                     {
-                        // Login
-                        await _signInManager.SignInAsync(applicationUser, loginRequest.RememberMe);
+                        keyValuePairs.AddModelError("Error", "Please confirm your email!");
+                    }
+                    else
+                    {
+                        var result = await _userManager.CheckPasswordAsync(applicationUser, loginRequest.Password);
 
-                        var roles = await _userManager.GetRolesAsync(applicationUser);
-
-                        var claims = new[]
+                        if (result)
                         {
+                            // Login
+                            await _signInManager.SignInAsync(applicationUser, loginRequest.RememberMe);
+
+                            var roles = await _userManager.GetRolesAsync(applicationUser);
+
+                            var claims = new[]
+                            {
                             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                             new Claim(ClaimTypes.Name, applicationUser!.UserName ?? "none"),
                             new Claim(ClaimTypes.NameIdentifier, applicationUser.Id),
                             new Claim(ClaimTypes.Role, String.Join(",", roles))
                         };
 
-                        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("EraaSoft##EraaSoft##EraaSoft##EraaSoft##EraaSoft##"));
-                        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+                            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("EraaSoft##EraaSoft##EraaSoft##EraaSoft##EraaSoft##"));
+                            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-                        var token = new JwtSecurityToken(
-                            claims: claims,
-                            expires: DateTime.UtcNow.AddHours(3),
-                            signingCredentials: creds
-                            );
+                            var token = new JwtSecurityToken(
+                                claims: claims,
+                                expires: DateTime.UtcNow.AddHours(3),
+                                signingCredentials: creds
+                                );
 
-                        return Ok(new
+                            return Ok(new
+                            {
+                                token = new JwtSecurityTokenHandler().WriteToken(token)
+                            });
+                        }
+                        else
                         {
-                            token = new JwtSecurityTokenHandler().WriteToken(token)
-                        });
-                    }
-                    else
-                    {
-                        keyValuePairs.AddModelError("EmailOrUserName", "Invalid Email Or User Name");
-                        keyValuePairs.AddModelError("Password", "Invalid Password");
+                            keyValuePairs.AddModelError("EmailOrUserName", "Invalid Email Or User Name");
+                            keyValuePairs.AddModelError("Password", "Invalid Password");
+                        }
                     }
 
                 }
@@ -144,7 +151,7 @@ namespace TJobs.Controllers
             return NoContent();
         }
 
-        [HttpPost("ConfirmEmail")]
+        [HttpGet("ConfirmEmail")]
         public async Task<IActionResult> ConfirmEmail([FromQuery] string userId, [FromQuery] string token)
         {
             var applicationUser = await _userManager.FindByIdAsync(userId);

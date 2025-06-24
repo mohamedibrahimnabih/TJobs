@@ -48,7 +48,7 @@ namespace TJobs
             builder.Services.AddOpenApi();
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                    options.UseSqlServer("Data Source=.;Initial Catalog=TJobs;Integrated Security=True;TrustServerCertificate=True"));
+                    options.UseSqlServer("Server=db22087.public.databaseasp.net; Database=db22087; User Id=db22087; Password=gD%4X_3w@9mB; Encrypt=True; TrustServerCertificate=True; MultipleActiveResultSets=True;"));
 
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {

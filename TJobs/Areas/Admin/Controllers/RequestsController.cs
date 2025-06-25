@@ -61,7 +61,7 @@ namespace TJobs.Areas.Admin.Controllers
             var requestCreated = _context.Requests.Add(requestRequest.Adapt<Request>());
             requestCreated.Entity.PublishDateTime = DateTime.UtcNow;
             requestCreated.Entity.RequestStatus = RequestStatus.Active;
-            requestCreated.Entity.MainImg = filePath;
+            requestCreated.Entity.MainImg = $"{Request.Scheme}://{Request.Host}/images/{fileName}";
 
             var user = await _userManager.GetUserAsync(User);
 
@@ -109,7 +109,7 @@ namespace TJobs.Areas.Admin.Controllers
                         System.IO.File.Delete(requestInDb.MainImg);
                     }
 
-                    requestInDb.MainImg = filePath;
+                    requestInDb.MainImg = $"{Request.Scheme}://{Request.Host}/images/{fileName}";
                 }
 
                 requestInDb.Title = requestRequest.Title;

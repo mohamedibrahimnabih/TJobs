@@ -71,6 +71,8 @@ namespace TJobs
 
             app.UseHttpsRedirection();
 
+            app.UseStaticFiles();
+
             app.UseCors(MyAllowSpecificOrigins);
 
             app.UseAuthentication();

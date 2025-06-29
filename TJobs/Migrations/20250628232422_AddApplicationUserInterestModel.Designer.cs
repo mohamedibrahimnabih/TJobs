@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TJobs.Data;
 
@@ -11,9 +12,11 @@ using TJobs.Data;
 namespace TJobs.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250628232422_AddApplicationUserInterestModel")]
+    partial class AddApplicationUserInterestModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -270,7 +273,7 @@ namespace TJobs.Migrations
                     b.HasIndex("ApplicationUserId")
                         .IsUnique();
 
-                    b.ToTable("ApplicationUserBriefs", (string)null);
+                    b.ToTable("ApplicationUserBriefs");
                 });
 
             modelBuilder.Entity("TJobs.Models.ApplicationUserInterest", b =>
@@ -293,7 +296,7 @@ namespace TJobs.Migrations
 
                     b.HasIndex("ApplicationUserId");
 
-                    b.ToTable("ApplicationUserInterests", (string)null);
+                    b.ToTable("ApplicationUserInterests");
                 });
 
             modelBuilder.Entity("TJobs.Models.ApplicationUserSkill", b =>
@@ -316,7 +319,7 @@ namespace TJobs.Migrations
 
                     b.HasIndex("ApplicationUserId");
 
-                    b.ToTable("ApplicationUserSkills", (string)null);
+                    b.ToTable("ApplicationUserSkills");
                 });
 
             modelBuilder.Entity("TJobs.Models.PasswordResetCode", b =>
@@ -342,7 +345,7 @@ namespace TJobs.Migrations
 
                     b.HasIndex("ApplicationUserId");
 
-                    b.ToTable("PasswordResetCodes", (string)null);
+                    b.ToTable("PasswordResetCodes");
                 });
 
             modelBuilder.Entity("TJobs.Models.Request", b =>
@@ -408,7 +411,7 @@ namespace TJobs.Migrations
 
                     b.HasIndex("RequestTypeId");
 
-                    b.ToTable("Requests", (string)null);
+                    b.ToTable("Requests");
                 });
 
             modelBuilder.Entity("TJobs.Models.RequestImage", b =>
@@ -430,7 +433,7 @@ namespace TJobs.Migrations
 
                     b.HasIndex("RequestId");
 
-                    b.ToTable("RequestImages", (string)null);
+                    b.ToTable("RequestImages");
                 });
 
             modelBuilder.Entity("TJobs.Models.RequestType", b =>
@@ -447,28 +450,7 @@ namespace TJobs.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("RequestTypes", (string)null);
-                });
-
-            modelBuilder.Entity("TJobs.Models.UserRequest", b =>
-                {
-                    b.Property<string>("ApplicationUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("RequestId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("File")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserRequestStatus")
-                        .HasColumnType("int");
-
-                    b.HasKey("ApplicationUserId", "RequestId");
-
-                    b.HasIndex("RequestId");
-
-                    b.ToTable("UserRequests", (string)null);
+                    b.ToTable("RequestTypes");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -592,25 +574,6 @@ namespace TJobs.Migrations
                         .HasForeignKey("RequestId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Request");
-                });
-
-            modelBuilder.Entity("TJobs.Models.UserRequest", b =>
-                {
-                    b.HasOne("TJobs.Models.ApplicationUser", "ApplicationUser")
-                        .WithMany()
-                        .HasForeignKey("ApplicationUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TJobs.Models.Request", "Request")
-                        .WithMany()
-                        .HasForeignKey("RequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ApplicationUser");
 
                     b.Navigation("Request");
                 });

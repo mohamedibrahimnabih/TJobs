@@ -28,5 +28,7 @@ namespace TJobs.Models
         public string? SSN { get; set; }
         public UserType UserType { get; set; }
         public List<Request>? Requests { get; set; }
+        public List<ApplicationUserSkill>? Skills { get; set; }
+        public ApplicationUserBrief? Brief { get; set; }
     }
 }

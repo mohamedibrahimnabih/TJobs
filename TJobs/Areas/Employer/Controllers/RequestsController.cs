@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using TJobs.Models;
 
 namespace TJobs.Areas.Employer.Controllers
 {
@@ -161,6 +162,116 @@ namespace TJobs.Areas.Employer.Controllers
                 }
 
                 _context.Remove(requestInDb);
+                _context.SaveChanges();
+
+                return NoContent();
+            }
+
+            return NotFound();
+        }
+
+        [HttpGet("Application")]
+        public async Task<IActionResult> Application()
+        {
+            var user = await _userManager.GetUserAsync(User);
+
+            if (user is null)
+            {
+                var ApplicationUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (ApplicationUserId is null)
+                {
+                    return NotFound();
+                }
+
+                user = await _userManager.FindByIdAsync(ApplicationUserId);
+            }
+
+            var requests = _context.Requests.Include(e => e.RequestType).Where(e => e.ApplicationUserId == user.Id).Select(e=>e.Id).ToList();
+
+            List<UserRequest> userRequests = new();
+
+            foreach (var item in requests)
+            {
+                userRequests = _context.UserRequests.Include(e=>e.ApplicationUser).Include(e=>e.Request).Where(e => e.RequestId == item).ToList();
+            }
+
+            var ApplicationsResponse = userRequests.Adapt<List<ApplicationsResponse>>();
+
+            return Ok(ApplicationsResponse);
+        }
+
+        [HttpGet("PastProject")]
+        public async Task<IActionResult> PastProject()
+        {
+            var user = await _userManager.GetUserAsync(User);
+
+            if (user is null)
+            {
+                var ApplicationUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (ApplicationUserId is null)
+                {
+                    return NotFound();
+                }
+
+                user = await _userManager.FindByIdAsync(ApplicationUserId);
+            }
+
+            var requests = _context.Requests.Include(e => e.RequestType).Where(e => e.ApplicationUserId == user.Id).Select(e => e.Id).ToList();
+
+            List<UserRequest> userRequests = new();
+
+            foreach (var item in requests)
+            {
+                userRequests = _context.UserRequests.Include(e => e.ApplicationUser).Include(e => e.Request).Where(e => e.RequestId == item && e.UserRequestStatus == UserRequestStatus.Completed).ToList();
+            }
+
+            var ApplicationsResponse = userRequests.Adapt<List<ApplicationsResponse>>();
+
+            return Ok(ApplicationsResponse);
+        }
+
+        [HttpPatch("AcceptApplication")]
+        public IActionResult AcceptRequest([FromQuery] int requestId, string userId)
+        {
+            var userRequestInDb = _context.UserRequests.FirstOrDefault(e=>e.RequestId == requestId && e.ApplicationUserId == userId);
+
+            if (userRequestInDb is not null)
+            {
+                userRequestInDb.UserRequestStatus = UserRequestStatus.Accepted;
+                _context.SaveChanges();
+
+                return NoContent();
+            }
+
+            return NotFound();
+        }
+
+        [HttpPatch("DeAcceptApplication")]
+        public IActionResult DeAcceptApplication([FromQuery] int requestId, string userId)
+        {
+            var userRequestInDb = _context.UserRequests.FirstOrDefault(e => e.RequestId == requestId && e.ApplicationUserId == userId);
+
+            if (userRequestInDb is not null)
+            {
+                userRequestInDb.UserRequestStatus = UserRequestStatus.Rejected;
+                _context.SaveChanges();
+
+                return NoContent();
+            }
+
+            return NotFound();
+        }
+
+        [HttpPatch("CompleteApplication")]
+        public IActionResult CompleteApplication([FromQuery] int requestId, string userId)
+        {
+            var userRequestInDb = _context.UserRequests.FirstOrDefault(e => e.RequestId == requestId && e.ApplicationUserId == userId);
+
+            if (userRequestInDb is not null)
+            {
+                userRequestInDb.UserRequestStatus = UserRequestStatus.Completed;
                 _context.SaveChanges();
 
                 return NoContent();

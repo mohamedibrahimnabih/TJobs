@@ -22,5 +22,6 @@ namespace TJobs.Models
         public UserRequestStatus UserRequestStatus { get; set; }
 
         public string? File { get; set; }
+        public DateTime? ApplyDateTime { get; set; }
     }
 }

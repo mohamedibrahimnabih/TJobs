@@ -33,6 +33,8 @@ namespace TJobs.Areas.Worker.Controllers
             return Ok(requests.Adapt<List<RequestUserResponse>>());
         }
 
+        
+
         [HttpGet("{id}")]
         public IActionResult Get([FromRoute] int id)
         {
@@ -50,7 +52,7 @@ namespace TJobs.Areas.Worker.Controllers
         }
 
         [HttpPost("ApplyJob")]
-        public async Task<IActionResult> Create([FromForm] ApplyRequestRequest applyRequestRequest)
+        public async Task<IActionResult> ApplyJob([FromForm] ApplyRequestRequest applyRequestRequest)
         {
             var fileName = Guid.NewGuid().ToString() + Path.GetExtension(applyRequestRequest.File.FileName);
             var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\files", fileName);
@@ -64,7 +66,8 @@ namespace TJobs.Areas.Worker.Controllers
             {
                 UserRequestStatus = UserRequestStatus.Pending,
                 RequestId = applyRequestRequest.RequestId,
-                File = $"{Request.Scheme}://{Request.Host}/files/{fileName}"
+                File = $"{Request.Scheme}://{Request.Host}/files/{fileName}",
+                ApplyDateTime = DateTime.UtcNow
             });
 
             var user = await _userManager.GetUserAsync(User);
@@ -87,6 +90,36 @@ namespace TJobs.Areas.Worker.Controllers
 
             return Created();
             //return CreatedAtAction(nameof(Get), new { id = requestCreated.Entity.Id }, requestCreated.Entity.Adapt<RequestResponse>());
+        }
+
+        [HttpGet("CurrentJobs")]
+        public async Task<IActionResult> CurrentJobs()
+        {
+            var user = await _userManager.GetUserAsync(User);
+
+            if (user is null)
+            {
+                var ApplicationUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (ApplicationUserId is null)
+                {
+                    return NotFound();
+                }
+
+                user = await _userManager.FindByIdAsync(ApplicationUserId);
+            }
+
+            var currentJobs = _context.UserRequests.Include(e => e.Request).Include(e => e.ApplicationUser).Where(e => e.UserRequestStatus == UserRequestStatus.Accepted && e.ApplicationUserId == user.Id).ToList();
+
+            return Ok(new
+            {
+                currentJobs = currentJobs.Select(e => new
+                {
+                    e.Request.Title,
+                    e.Request.PublishDateTime,
+                    e.ApplicationUser.Email
+                })
+            });
         }
     }
 }

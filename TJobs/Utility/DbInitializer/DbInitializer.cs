@@ -45,6 +45,7 @@ namespace TJobs.Utility.DbInitializer
                     Email = "SuperAdmin@gmail.com",
                     FirstName = "Super",
                     LastName = "Admin",
+                    EmailConfirmed = true,
                     Gender = ApplicationUserGender.Male,
                     BirthOfDate = new DateOnly(1999, 1, 1),
                     UserType = UserType.SuperAdmin

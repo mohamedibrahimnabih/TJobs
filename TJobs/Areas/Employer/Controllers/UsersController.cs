@@ -50,11 +50,12 @@ namespace TJobs.Areas.Employer.Controllers
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Email = user.Email ?? "",
+                PhoneNumber = user.PhoneNumber ?? "",
                 City = user.City,
                 State = user.State,
                 Street = user.Street,
                 SSN = user.SSN,
-                Roles = roles.ToList()
+                Roles = roles.ToList(),
             };
 
             var userBrief = _context.ApplicationUserBriefs.OrderBy(e => e.Id).LastOrDefault(e => e.ApplicationUserId == user.Id);
@@ -98,6 +99,7 @@ namespace TJobs.Areas.Employer.Controllers
             user.City = employerProfileRequest.City;
             user.Street = employerProfileRequest.Street;
             user.State = employerProfileRequest.State;
+            user.SSN = employerProfileRequest.SSN;
 
             var lastInterests = _context.ApplicationUserInterests.Where(e => e.ApplicationUserId == user.Id);
             if (lastInterests is not null)

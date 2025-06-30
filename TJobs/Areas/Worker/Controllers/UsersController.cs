@@ -51,6 +51,7 @@ namespace TJobs.Areas.Worker.Controllers
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Email = user.Email ?? "",
+                PhoneNumber = user.PhoneNumber ?? "",
                 City = user.City,
                 State = user.State,
                 Street = user.Street,
@@ -99,6 +100,7 @@ namespace TJobs.Areas.Worker.Controllers
             user.City = workerProfileRequest.City;
             user.Street = workerProfileRequest.Street;
             user.State = workerProfileRequest.State;
+            user.SSN = workerProfileRequest.SSN;
 
             var lastSkills = _context.ApplicationUserSkills.Where(e => e.ApplicationUserId == user.Id);
             if (lastSkills is not null)

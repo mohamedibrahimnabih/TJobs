@@ -35,11 +35,12 @@ namespace TJobs.Areas.Admin.Controllers
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Email = user.Email ?? "",
+                    PhoneNumber = user.PhoneNumber ?? "",
                     City = user.City,
                     State = user.State,
                     Street = user.Street,
                     SSN = user.SSN,
-                    Roles = roles.ToList()
+                    Roles = roles.ToList(),
                 };
 
                 usersResponse.Add(userResponse);

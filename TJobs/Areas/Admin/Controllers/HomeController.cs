@@ -1,6 +1,7 @@
 ﻿using Mapster;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
 
 namespace TJobs.Areas.Admin.Controllers
 {
@@ -19,12 +20,30 @@ namespace TJobs.Areas.Admin.Controllers
         [HttpGet("")]
         public IActionResult Index()
         {
+            var userTypeChart = _context.Users
+                .GroupBy(u => u.UserType)
+                .Select(g => new ChartItem
+                {
+                    Label = g.Key.ToString(),
+                    Value = g.Count()
+                }).ToList();
+
+            var genderChart = _context.Users
+                .GroupBy(u => u.Gender)
+                .Select(g => new ChartItem
+                {
+                    Label = g.Key.ToString(),
+                    Value = g.Count()
+                }).ToList();
+
             var adminDashboardStatistics = new AdminDashboardStatistics()
             {
                 TotalNumberOfUsers = _context.Users.Count(),
                 TotalNumberOfRequests = _context.Requests.Count(),
                 TotalNumberOfBlockedUsers = _context.Users.Where(e => !e.LockoutEnabled).Count(),
-                TotalNumberOfApplications = 0
+                TotalNumberOfApplications = 0,
+                UserTypeChart = userTypeChart,
+                GenderChart = genderChart
             };
 
             return Ok(adminDashboardStatistics);

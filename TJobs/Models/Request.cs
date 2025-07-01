@@ -5,7 +5,8 @@
         Pending, 
         Active,
         Expired,
-        NotAccepted
+        NotAccepted,
+        Completed
     }
 
     public class Request

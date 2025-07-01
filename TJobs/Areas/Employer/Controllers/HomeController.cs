@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -47,7 +48,8 @@ namespace TJobs.Areas.Employer.Controllers
                 TotalNumberOfAcceptedRequests = _context.Requests.Where(e=>e.ApplicationUserId == user.Id && e.RequestStatus == RequestStatus.Active).Count(),
                 TotalNumberOfNotAcceptedRequests = _context.Requests.Where(e => e.ApplicationUserId == user.Id && e.RequestStatus == RequestStatus.NotAccepted).Count(),
                 TotalNumberOfPendingRequests = _context.Requests.Where(e => e.ApplicationUserId == user.Id && e.RequestStatus == RequestStatus.Pending).Count(),
-                TotalNumberOfResponses = 0
+                TotalNumberOfCompletedRequests = _context.Requests.Where(e => e.ApplicationUserId == user.Id && e.RequestStatus == RequestStatus.Completed).Count(),
+                TotalNumberOfExpiredRequests = _context.Requests.Where(e => e.ApplicationUserId == user.Id && e.RequestStatus == RequestStatus.Expired).Count()
             };
 
             return Ok(employerDashboardStatistics);
@@ -70,7 +72,7 @@ namespace TJobs.Areas.Employer.Controllers
                 user = await _userManager.FindByIdAsync(ApplicationUserId);
             }
 
-            var requests = _context.Requests.Where(e => e.ApplicationUserId == user.Id).OrderByDescending(e => e.PublishDateTime).Skip(0).Take(5);
+            var requests = _context.Requests.Include(e=>e.RequestType).Where(e => e.ApplicationUserId == user.Id).OrderByDescending(e => e.PublishDateTime).Skip(0).Take(5);
 
             return Ok(requests.Adapt<List<RequestResponse>>());
         }

@@ -170,8 +170,8 @@ namespace TJobs.Areas.Employer.Controllers
             return NotFound();
         }
 
-        [HttpGet("Application")]
-        public async Task<IActionResult> Application()
+        [HttpGet("Applications")]
+        public async Task<IActionResult> Applications()
         {
             var user = await _userManager.GetUserAsync(User);
 
@@ -194,37 +194,6 @@ namespace TJobs.Areas.Employer.Controllers
             foreach (var item in requests)
             {
                 userRequests = _context.UserRequests.Include(e=>e.ApplicationUser).Include(e=>e.Request).Where(e => e.RequestId == item).ToList();
-            }
-
-            var ApplicationsResponse = userRequests.Adapt<List<ApplicationsResponse>>();
-
-            return Ok(ApplicationsResponse);
-        }
-
-        [HttpGet("PastProject")]
-        public async Task<IActionResult> PastProject()
-        {
-            var user = await _userManager.GetUserAsync(User);
-
-            if (user is null)
-            {
-                var ApplicationUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                if (ApplicationUserId is null)
-                {
-                    return NotFound();
-                }
-
-                user = await _userManager.FindByIdAsync(ApplicationUserId);
-            }
-
-            var requests = _context.Requests.Include(e => e.RequestType).Where(e => e.ApplicationUserId == user.Id).Select(e => e.Id).ToList();
-
-            List<UserRequest> userRequests = new();
-
-            foreach (var item in requests)
-            {
-                userRequests = _context.UserRequests.Include(e => e.ApplicationUser).Include(e => e.Request).Where(e => e.RequestId == item && e.UserRequestStatus == UserRequestStatus.Completed).ToList();
             }
 
             var ApplicationsResponse = userRequests.Adapt<List<ApplicationsResponse>>();
@@ -267,11 +236,12 @@ namespace TJobs.Areas.Employer.Controllers
         [HttpPatch("CompleteApplication")]
         public IActionResult CompleteApplication([FromQuery] int requestId, string userId)
         {
-            var userRequestInDb = _context.UserRequests.FirstOrDefault(e => e.RequestId == requestId && e.ApplicationUserId == userId);
+            var userRequestInDb = _context.UserRequests.Include(e=>e.Request).FirstOrDefault(e => e.RequestId == requestId && e.ApplicationUserId == userId);
 
             if (userRequestInDb is not null)
             {
                 userRequestInDb.UserRequestStatus = UserRequestStatus.Completed;
+                userRequestInDb.Request.RequestStatus = RequestStatus.Completed;
                 _context.SaveChanges();
 
                 return NoContent();
@@ -279,5 +249,37 @@ namespace TJobs.Areas.Employer.Controllers
 
             return NotFound();
         }
+
+        [HttpGet("PastProject")]
+        public async Task<IActionResult> PastProject()
+        {
+            var user = await _userManager.GetUserAsync(User);
+
+            if (user is null)
+            {
+                var ApplicationUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (ApplicationUserId is null)
+                {
+                    return NotFound();
+                }
+
+                user = await _userManager.FindByIdAsync(ApplicationUserId);
+            }
+
+            var requests = _context.Requests.Include(e => e.RequestType).Where(e => e.ApplicationUserId == user.Id).Select(e => e.Id).ToList();
+
+            List<UserRequest> userRequests = new();
+
+            foreach (var item in requests)
+            {
+                userRequests = _context.UserRequests.Include(e => e.ApplicationUser).Include(e => e.Request).Where(e => e.RequestId == item && e.UserRequestStatus == UserRequestStatus.Completed).ToList();
+            }
+
+            var ApplicationsResponse = userRequests.Adapt<List<ApplicationsResponse>>();
+
+            return Ok(ApplicationsResponse);
+        }
+
     }
 }

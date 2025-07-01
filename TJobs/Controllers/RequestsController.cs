@@ -19,7 +19,7 @@ namespace TJobs.Controllers
         [HttpGet("")]
         public IActionResult GetAll()
         {
-            var requests = _context.Requests.Include(e => e.RequestType);
+            var requests = _context.Requests.Include(e => e.RequestType).Where(e => e.RequestStatus == RequestStatus.Active);
 
             return Ok(requests.Adapt<List<RequestResponse>>());
         }
@@ -27,7 +27,7 @@ namespace TJobs.Controllers
         [HttpGet("{id}")]
         public IActionResult Get([FromRoute] int id)
         {
-            var request = _context.Requests.Include(e=>e.RequestType).FirstOrDefault(e=>e.Id == id);
+            var request = _context.Requests.Include(e => e.RequestType).FirstOrDefault(e => e.Id == id && e.RequestStatus == RequestStatus.Active);
 
             if(request is not null)
             {
@@ -43,7 +43,7 @@ namespace TJobs.Controllers
         [HttpGet("Filter")]
         public IActionResult FilterProducts([FromBody] FilterProductRequest filterProductRequest)
         {
-            var query = _context.Requests.AsQueryable();
+            var query = _context.Requests.Include(e => e.RequestType).Where(e => e.RequestStatus == RequestStatus.Active).AsQueryable();
 
             if (!string.IsNullOrEmpty(filterProductRequest.City) && filterProductRequest.City != "الكل")
                 query = query.Where(r => r.City == filterProductRequest.City);

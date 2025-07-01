@@ -18,5 +18,6 @@ namespace TJobs.Data
         public DbSet<ApplicationUserInterest> ApplicationUserInterests { get; set; }
         public DbSet<ApplicationUserBrief> ApplicationUserBriefs { get; set; }
         public DbSet<UserRequest> UserRequests { get; set; }
+        public DbSet<WorkerRating> WorkerRatings { get; set; }
     }
 }

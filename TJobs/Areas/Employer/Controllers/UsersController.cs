@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -28,19 +29,10 @@ namespace TJobs.Areas.Employer.Controllers
         [HttpGet("")]
         public async Task<IActionResult> Get()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await _userManager.GetUserAsync(User)
+                       ?? await _userManager.FindByIdAsync(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
 
-            if (user is null)
-            {
-                var ApplicationUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                if (ApplicationUserId is null)
-                {
-                    return NotFound();
-                }
-
-                user = await _userManager.FindByIdAsync(ApplicationUserId);
-            }
+            if (user is null) return NotFound();
 
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -56,59 +48,99 @@ namespace TJobs.Areas.Employer.Controllers
                 Street = user.Street,
                 SSN = user.SSN,
                 Roles = roles.ToList(),
+                Img = user.Img,
+                File = user.File
             };
 
-            var userBrief = _context.ApplicationUserBriefs.OrderBy(e => e.Id).LastOrDefault(e => e.ApplicationUserId == user.Id);
+            var userBrief = await _context.ApplicationUserBriefs
+                                          .Where(e => e.ApplicationUserId == user.Id)
+                                          .OrderByDescending(e => e.Id)
+                                          .FirstOrDefaultAsync();
 
-            var userInterests = _context.ApplicationUserInterests.Where(e => e.ApplicationUserId == user.Id);
+            var userInterests = await _context.ApplicationUserInterests
+                                              .Where(e => e.ApplicationUserId == user.Id)
+                                              .Select(e => e.Name)
+                                              .ToListAsync();
 
-            var userInterestsResponse = new UserSkillsResponse
-            {
-                Description = userBrief is not null ? userBrief.Description : "",
-                Skills = userInterests is not null ? userInterests.Select(e => e.Name).ToList() : new()
-            };
+            var postedJobsCount = await _context.Requests.CountAsync(r => r.ApplicationUserId == user.Id);
+            var avgRating = user.AvgRate;
 
             return Ok(new
             {
                 userResponse,
-                userInterestsResponse
+                userInterestsResponse = new UserSkillsResponse
+                {
+                    Description = userBrief?.Description ?? "",
+                    Skills = userInterests
+                },
+                postedJobsCount,
+                avgRating
             });
         }
 
+
         [HttpPut("")]
-        public async Task<IActionResult> Update(ProfileRequest employerProfileRequest)
+        public async Task<IActionResult> Update([FromForm] ProfileRequest request)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await _userManager.GetUserAsync(User)
+                       ?? await _userManager.FindByIdAsync(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
 
-            if (user is null)
+            if (user is null) return NotFound();
+
+            user.FirstName = request.FirstName;
+            user.LastName = request.LastName;
+            user.Email = request.Email;
+            user.PhoneNumber = request.PhoneNumber;
+            user.City = request.City;
+            user.Street = request.Street;
+            user.State = request.State;
+            user.SSN = request.SSN;
+
+            if (request.ProfileImage is not null && request.ProfileImage.Length > 0)
             {
-                var ApplicationUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(request.ProfileImage.FileName);
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles", fileName);
 
-                if (ApplicationUserId is null)
+                using (var stream = System.IO.File.Create(filePath))
                 {
-                    return NotFound();
+                    await request.ProfileImage.CopyToAsync(stream);
                 }
 
-                user = await _userManager.FindByIdAsync(ApplicationUserId);
+                // حذف القديم
+                if (!string.IsNullOrWhiteSpace(user.Img) && System.IO.File.Exists(Path.Combine("wwwroot", user.Img.Replace($"{Request.Scheme}://{Request.Host}/", ""))))
+                {
+                    System.IO.File.Delete(Path.Combine("wwwroot", user.Img.Replace($"{Request.Scheme}://{Request.Host}/", "")));
+                }
+
+                user.Img = $"{Request.Scheme}://{Request.Host}/images/profiles/{fileName}";
             }
 
-            user.FirstName = employerProfileRequest.FirstName;
-            user.LastName = employerProfileRequest.LastName;
-            user.Email = employerProfileRequest.Email;
-            user.PhoneNumber = employerProfileRequest.PhoneNumber;
-            user.City = employerProfileRequest.City;
-            user.Street = employerProfileRequest.Street;
-            user.State = employerProfileRequest.State;
-            user.SSN = employerProfileRequest.SSN;
+            if (request.CV is not null && request.CV.Length > 0)
+            {
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(request.CV.FileName);
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/files/cv", fileName);
+
+                using (var stream = System.IO.File.Create(filePath))
+                {
+                    await request.CV.CopyToAsync(stream);
+                }
+
+                if (!string.IsNullOrWhiteSpace(user.File) && System.IO.File.Exists(Path.Combine("wwwroot", user.File.Replace($"{Request.Scheme}://{Request.Host}/", ""))))
+                {
+                    System.IO.File.Delete(Path.Combine("wwwroot", user.File.Replace($"{Request.Scheme}://{Request.Host}/", "")));
+                }
+
+                user.File = $"{Request.Scheme}://{Request.Host}/files/cv/{fileName}";
+            }
+
+            await _userManager.UpdateAsync(user);
 
             var lastInterests = _context.ApplicationUserInterests.Where(e => e.ApplicationUserId == user.Id);
-            if (lastInterests is not null)
+            _context.ApplicationUserInterests.RemoveRange(lastInterests);
+
+            foreach (var item in request.SkillsOrInterests)
             {
-                _context.ApplicationUserInterests.RemoveRange(lastInterests);
-            }
-            foreach (var item in employerProfileRequest.SkillsOrInterests)
-            {
-                _context.ApplicationUserInterests.Add(new()
+                _context.ApplicationUserInterests.Add(new ApplicationUserInterest
                 {
                     ApplicationUserId = user.Id,
                     Name = item
@@ -116,19 +148,18 @@ namespace TJobs.Areas.Employer.Controllers
             }
 
             var lastBriefs = _context.ApplicationUserBriefs.Where(e => e.ApplicationUserId == user.Id);
-            if (lastBriefs is not null)
-            {
-                _context.ApplicationUserBriefs.RemoveRange(lastBriefs);
-            }
+            _context.ApplicationUserBriefs.RemoveRange(lastBriefs);
+
             _context.ApplicationUserBriefs.Add(new ApplicationUserBrief
             {
                 ApplicationUserId = user.Id,
-                Description = employerProfileRequest.Description ?? ""
+                Description = request.Description ?? ""
             });
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }
+
     }
 }

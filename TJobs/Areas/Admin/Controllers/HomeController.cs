@@ -1,4 +1,6 @@
 ﻿using Mapster;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
@@ -8,6 +10,7 @@ namespace TJobs.Areas.Admin.Controllers
     [Route("api/[area]/[controller]")]
     [Area("Admin")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class HomeController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -40,8 +43,9 @@ namespace TJobs.Areas.Admin.Controllers
             {
                 TotalNumberOfUsers = _context.Users.Count(),
                 TotalNumberOfRequests = _context.Requests.Count(),
+                TotalNumberOfActiveRequests = _context.Requests.Where(e=>e.RequestStatus == RequestStatus.Active).Count(),
                 TotalNumberOfBlockedUsers = _context.Users.Where(e => !e.LockoutEnabled).Count(),
-                TotalNumberOfApplications = 0,
+                TotalNumberOfApplications = _context.UserRequests.Count(),
                 UserTypeChart = userTypeChart,
                 GenderChart = genderChart
             };

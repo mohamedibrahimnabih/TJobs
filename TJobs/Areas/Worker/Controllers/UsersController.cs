@@ -29,19 +29,10 @@ namespace TJobs.Areas.Worker.Controllers
         [HttpGet("")]
         public async Task<IActionResult> Get()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await _userManager.GetUserAsync(User)
+                       ?? await _userManager.FindByIdAsync(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
 
-            if (user is null)
-            {
-                var ApplicationUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                if (ApplicationUserId is null)
-                {
-                    return NotFound();
-                }
-
-                user = await _userManager.FindByIdAsync(ApplicationUserId);
-            }
+            if (user is null) return NotFound();
 
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -56,17 +47,25 @@ namespace TJobs.Areas.Worker.Controllers
                 State = user.State,
                 Street = user.Street,
                 SSN = user.SSN,
+                Img = user.Img,           
+                File = user.File,         
                 Roles = roles.ToList()
             };
 
-            var userBrief = _context.ApplicationUserBriefs.OrderBy(e=>e.Id).LastOrDefault(e => e.ApplicationUserId == user.Id);
+            var userBrief = await _context.ApplicationUserBriefs
+                                          .Where(e => e.ApplicationUserId == user.Id)
+                                          .OrderByDescending(e => e.Id)
+                                          .FirstOrDefaultAsync();
 
-            var userSkills = _context.ApplicationUserSkills.Where(e => e.ApplicationUserId == user.Id);
+            var userSkills = await _context.ApplicationUserSkills
+                                           .Where(e => e.ApplicationUserId == user.Id)
+                                           .Select(e => e.Name)
+                                           .ToListAsync();
 
             var userSkillsResponse = new UserSkillsResponse
             {
-                Description = userBrief is not null ? userBrief.Description : "",
-                Skills = userSkills is not null ? userSkills.Select(e => e.Name).ToList() : new()
+                Description = userBrief?.Description ?? "",
+                Skills = userSkills
             };
 
             return Ok(new
@@ -76,22 +75,14 @@ namespace TJobs.Areas.Worker.Controllers
             });
         }
 
+
         [HttpPut("")]
-        public async Task<IActionResult> Update(ProfileRequest workerProfileRequest)
+        public async Task<IActionResult> Update([FromForm] ProfileRequest workerProfileRequest)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await _userManager.GetUserAsync(User)
+                       ?? await _userManager.FindByIdAsync(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
 
-            if (user is null)
-            {
-                var ApplicationUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                if (ApplicationUserId is null)
-                {
-                    return NotFound();
-                }
-
-                user = await _userManager.FindByIdAsync(ApplicationUserId);
-            }
+            if (user is null) return NotFound();
 
             user.FirstName = workerProfileRequest.FirstName;
             user.LastName = workerProfileRequest.LastName;
@@ -102,11 +93,49 @@ namespace TJobs.Areas.Worker.Controllers
             user.State = workerProfileRequest.State;
             user.SSN = workerProfileRequest.SSN;
 
-            var lastSkills = _context.ApplicationUserSkills.Where(e => e.ApplicationUserId == user.Id);
-            if (lastSkills is not null)
+            if (workerProfileRequest.ProfileImage is not null && workerProfileRequest.ProfileImage.Length > 0)
             {
-                _context.ApplicationUserSkills.RemoveRange(lastSkills);
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(workerProfileRequest.ProfileImage.FileName);
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles", fileName);
+
+                using (var stream = System.IO.File.Create(filePath))
+                {
+                    await workerProfileRequest.ProfileImage.CopyToAsync(stream);
+                }
+
+                // حذف القديم
+                if (!string.IsNullOrWhiteSpace(user.Img) && System.IO.File.Exists(Path.Combine("wwwroot", user.Img.Replace($"{Request.Scheme}://{Request.Host}/", ""))))
+                {
+                    System.IO.File.Delete(Path.Combine("wwwroot", user.Img.Replace($"{Request.Scheme}://{Request.Host}/", "")));
+                }
+
+                user.Img = $"{Request.Scheme}://{Request.Host}/images/profiles/{fileName}";
             }
+
+            if (workerProfileRequest.CV is not null && workerProfileRequest.CV.Length > 0)
+            {
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(workerProfileRequest.CV.FileName);
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/files/cv", fileName);
+
+                using (var stream = System.IO.File.Create(filePath))
+                {
+                    await workerProfileRequest.CV.CopyToAsync(stream);
+                }
+
+                if (!string.IsNullOrWhiteSpace(user.File) && System.IO.File.Exists(Path.Combine("wwwroot", user.File.Replace($"{Request.Scheme}://{Request.Host}/", ""))))
+                {
+                    System.IO.File.Delete(Path.Combine("wwwroot", user.File.Replace($"{Request.Scheme}://{Request.Host}/", "")));
+                }
+
+                user.File = $"{Request.Scheme}://{Request.Host}/files/cv/{fileName}";
+            }
+
+            await _userManager.UpdateAsync(user);
+
+            // Skills
+            var lastSkills = _context.ApplicationUserSkills.Where(e => e.ApplicationUserId == user.Id);
+            _context.ApplicationUserSkills.RemoveRange(lastSkills);
+
             foreach (var item in workerProfileRequest.SkillsOrInterests)
             {
                 _context.ApplicationUserSkills.Add(new()
@@ -116,20 +145,20 @@ namespace TJobs.Areas.Worker.Controllers
                 });
             }
 
+            // Brief
             var lastBriefs = _context.ApplicationUserBriefs.Where(e => e.ApplicationUserId == user.Id);
-            if(lastBriefs is not null)
-            {
-                _context.ApplicationUserBriefs.RemoveRange(lastBriefs);
-            }
+            _context.ApplicationUserBriefs.RemoveRange(lastBriefs);
+
             _context.ApplicationUserBriefs.Add(new ApplicationUserBrief
             {
                 ApplicationUserId = user.Id,
                 Description = workerProfileRequest.Description ?? ""
             });
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }
+
     }
 }

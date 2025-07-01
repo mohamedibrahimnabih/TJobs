@@ -10,9 +10,9 @@ namespace TJobs.Models
         Completed
     }
 
-    [PrimaryKey(nameof(ApplicationUserId), nameof(RequestId))]
     public class UserRequest
     {
+        public int Id { get; set; }
         public string ApplicationUserId { get; set; } = string.Empty;
         public ApplicationUser ApplicationUser { get; set; } = null!;
 
@@ -20,8 +20,6 @@ namespace TJobs.Models
         public Request Request { get; set; } = null!;
 
         public UserRequestStatus UserRequestStatus { get; set; }
-
-        public string? File { get; set; }
         public DateTime? ApplyDateTime { get; set; }
     }
 }

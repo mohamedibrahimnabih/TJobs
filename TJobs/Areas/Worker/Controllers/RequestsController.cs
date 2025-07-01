@@ -24,102 +24,110 @@ namespace TJobs.Areas.Worker.Controllers
             _userManager = userManager;
         }
 
-        // CRUD
-        [HttpGet("AvailableJobs")]
-        public IActionResult AvailableJobs()
+        [HttpGet("sent-requests")]
+        public async Task<IActionResult> GetSentRequests()
         {
-            var requests = _context.Requests.Include(e => e.RequestType).Include(e=>e.ApplicationUser).Where(e=>e.RequestStatus == RequestStatus.Active);
+            var user = await _userManager.GetUserAsync(User)
+                       ?? await _userManager.FindByIdAsync(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
 
-            return Ok(requests.Adapt<List<RequestUserResponse>>());
+            if (user is null) return NotFound();
+
+            var sentRequests = await _context.UserRequests
+                .Include(e => e.Request)
+                .Where(e => e.ApplicationUserId == user.Id)
+                .Select(e => new
+                {
+                    Title = e.Request.Title,
+                    Date = e.Request.PublishDateTime,
+                    Status = e.UserRequestStatus.ToString()
+                })
+                .OrderByDescending(e => e.Date)
+                .ToListAsync();
+
+            return Ok(sentRequests);
         }
 
-        
 
         [HttpGet("{id}")]
         public IActionResult Get([FromRoute] int id)
         {
-            var request = _context.Requests.Include(e => e.RequestType).Include(e => e.ApplicationUser).Where(e => e.RequestStatus == RequestStatus.Active).FirstOrDefault(e => e.Id == id);
+            var request = _context.Requests
+                .Include(e => e.RequestType)
+                .Include(e => e.ApplicationUser)
+                .FirstOrDefault(e => e.Id == id && e.RequestStatus == RequestStatus.Active);
 
-            if (request is not null)
-            {
-                request.Traffic++;
-                _context.SaveChanges();
+            if (request is null)
+                return NotFound();
 
-                return Ok(request.Adapt<RequestUserResponse>());
-            }
-
-            return NotFound();
-        }
-
-        [HttpPost("ApplyJob")]
-        public async Task<IActionResult> ApplyJob([FromForm] ApplyRequestRequest applyRequestRequest)
-        {
-            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(applyRequestRequest.File.FileName);
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\files", fileName);
-
-            using (var stream = System.IO.File.Create(filePath))
-            {
-                applyRequestRequest.File.CopyTo(stream);
-            }
-
-            var requestCreated = _context.UserRequests.Add(new()
-            {
-                UserRequestStatus = UserRequestStatus.Pending,
-                RequestId = applyRequestRequest.RequestId,
-                File = $"{Request.Scheme}://{Request.Host}/files/{fileName}",
-                ApplyDateTime = DateTime.UtcNow
-            });
-
-            var user = await _userManager.GetUserAsync(User);
-
-            if (user is null)
-            {
-                var ApplicationUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                if (ApplicationUserId is null)
-                {
-                    return NotFound();
-                }
-
-                user = await _userManager.FindByIdAsync(ApplicationUserId);
-            }
-
-            requestCreated.Entity.ApplicationUserId = user.Id;
-
+            request.Traffic++;
             _context.SaveChanges();
 
-            return Created();
-            //return CreatedAtAction(nameof(Get), new { id = requestCreated.Entity.Id }, requestCreated.Entity.Adapt<RequestResponse>());
+            return Ok(request.Adapt<RequestUserResponse>());
         }
+
+
+        [HttpPost("ApplyJob")]
+        public async Task<IActionResult> ApplyJob([FromQuery] int RequestId)
+        {
+            var user = await _userManager.GetUserAsync(User)
+                       ?? await _userManager.FindByIdAsync(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
+
+            if (user is null)
+                return NotFound();
+
+            // تحقق إن عنده CV
+            if (string.IsNullOrWhiteSpace(user.File))
+                return BadRequest(new { message = "لم تقم برفع سيرة ذاتية في حسابك." });
+
+            // تحقق إن الطلب موجود
+            var request = await _context.Requests.FindAsync(RequestId);
+            if (request is null)
+                return NotFound(new { message = "الوظيفة غير موجودة." });
+
+            // تحقق إن العامل مش مقدم قبل كده على نفس الطلب
+            var isAlreadyApplied = _context.UserRequests.Any(ur =>
+                ur.ApplicationUserId == user.Id && ur.RequestId == RequestId);
+            if (isAlreadyApplied)
+                return BadRequest(new { message = "تم التقديم مسبقًا على هذه الوظيفة." });
+
+            var userRequest = new UserRequest
+            {
+                ApplicationUserId = user.Id,
+                RequestId = RequestId,
+                UserRequestStatus = UserRequestStatus.Pending,
+                ApplyDateTime = DateTime.UtcNow,
+            };
+
+            _context.UserRequests.Add(userRequest);
+            _context.SaveChanges();
+
+            return Ok(new { message = "تم التقديم على الوظيفة بنجاح." });
+        }
+
+
 
         [HttpGet("CurrentJobs")]
         public async Task<IActionResult> CurrentJobs()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await _userManager.GetUserAsync(User)
+                       ?? await _userManager.FindByIdAsync(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
 
             if (user is null)
-            {
-                var ApplicationUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                return NotFound();
 
-                if (ApplicationUserId is null)
-                {
-                    return NotFound();
-                }
-
-                user = await _userManager.FindByIdAsync(ApplicationUserId);
-            }
-
-            var currentJobs = _context.UserRequests.Include(e => e.Request).Include(e => e.ApplicationUser).Where(e => e.UserRequestStatus == UserRequestStatus.Accepted && e.ApplicationUserId == user.Id).ToList();
-
-            return Ok(new
-            {
-                currentJobs = currentJobs.Select(e => new
+            var currentJobs = await _context.UserRequests
+                .Include(e => e.Request).ThenInclude(r => r.ApplicationUser)
+                .Where(e => e.UserRequestStatus == UserRequestStatus.Accepted && e.ApplicationUserId == user.Id)
+                .OrderByDescending(e => e.ApplyDateTime)
+                .Select(e => new
                 {
                     e.Request.Title,
                     e.Request.PublishDateTime,
-                    e.ApplicationUser.Email
+                    ContactEmail = e.Request.ApplicationUser.Email
                 })
-            });
+                .ToListAsync();
+
+            return Ok(new { currentJobs });
         }
     }
 }

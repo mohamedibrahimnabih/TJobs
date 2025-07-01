@@ -28,42 +28,55 @@ namespace TJobs.Areas.Worker.Controllers
         [HttpGet("")]
         public async Task<IActionResult> Index()
         {
-            var requiredJobs = _context.Requests.Include(e => e.RequestType).Include(e => e.ApplicationUser).Where(e => e.RequestStatus == RequestStatus.Active).ToList();
+            var user = await _userManager.GetUserAsync(User)
+                       ?? await _userManager.FindByIdAsync(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
 
-            var user = await _userManager.GetUserAsync(User);
+            if (user is null) return NotFound();
 
-            if (user is null)
-            {
-                var ApplicationUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            // المهارات بتاعت العامل
+            var workerSkills = await _context.ApplicationUserSkills
+                .Where(s => s.ApplicationUserId == user.Id)
+                .Select(s => s.Name)
+                .ToListAsync();
 
-                if (ApplicationUserId is null)
+            // الطلبات المطلوبة اللي تناسب العامل (تطابق النوع مع مهاراته)
+            var requiredJobs = await _context.Requests
+                .Include(e => e.RequestType)
+                .Include(e => e.ApplicationUser)
+                .Where(e => e.RequestStatus == RequestStatus.Active && workerSkills.Contains(e.RequestType.Name))
+                .ToListAsync();
+
+            // الوظائف الحالية (تم قبول العامل فيها)
+            var currentJobs = await _context.UserRequests
+                .Include(e => e.Request).ThenInclude(r => r.ApplicationUser)
+                .Where(e => e.ApplicationUserId == user.Id && e.UserRequestStatus == UserRequestStatus.Accepted)
+                .Select(e => new
                 {
-                    return NotFound();
-                }
+                    e.Request.Title,
+                    e.Request.PublishDateTime,
+                    ContactEmail = e.Request.ApplicationUser.Email
+                })
+                .ToListAsync();
 
-                user = await _userManager.FindByIdAsync(ApplicationUserId);
-            }
-
-            var currentJobs = _context.UserRequests.Include(e=>e.Request).Include(e=>e.ApplicationUser).Where(e => e.ApplicationUserId == user.Id && e.UserRequestStatus == UserRequestStatus.Accepted).ToList();
-
-            var completedJobs = _context.UserRequests.Include(e => e.Request).Include(e => e.ApplicationUser).Where(e => e.ApplicationUserId == user.Id && e.UserRequestStatus == UserRequestStatus.Completed).ToList();
+            // الوظائف المكتملة
+            var completedJobs = await _context.UserRequests
+                .Include(e => e.Request).ThenInclude(r => r.ApplicationUser)
+                .Where(e => e.ApplicationUserId == user.Id && e.UserRequestStatus == UserRequestStatus.Completed)
+                .Select(e => new
+                {
+                    e.Request.Title,
+                    e.Request.PublishDateTime,
+                    ContactEmail = e.Request.ApplicationUser.Email
+                })
+                .ToListAsync();
 
             return Ok(new
             {
                 requiredJobs = requiredJobs.Adapt<List<RequestUserResponse>>(),
-                currentJobs = currentJobs.Select(e=> new
-                {
-                    e.Request.Title,
-                    e.Request.PublishDateTime,
-                    e.ApplicationUser.Email
-                }),
-                completedJobs = completedJobs.Select(e => new
-                {
-                    e.Request.Title,
-                    e.Request.PublishDateTime,
-                    e.ApplicationUser.Email
-                }),
+                currentJobs,
+                completedJobs
             });
         }
+
     }
 }

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,6 +9,7 @@ namespace TJobs.Areas.Admin.Controllers
     [Route("api/[area]/[controller]")]
     [Area("Admin")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class UsersController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -40,6 +43,7 @@ namespace TJobs.Areas.Admin.Controllers
                     State = user.State,
                     Street = user.Street,
                     SSN = user.SSN,
+                    IsBlocked = !user.LockoutEnabled,
                     Roles = roles.ToList(),
                 };
 

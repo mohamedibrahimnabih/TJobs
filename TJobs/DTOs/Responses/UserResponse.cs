@@ -12,5 +12,9 @@
         public string? Street { get; set; }
         public string? SSN { get; set; }
         public List<string>? Roles { get; set; }
+        public bool IsBlocked { get; set; } = false;
+
+        public string? Img { get; set; }
+        public string? File { get; set; }
     }
 }

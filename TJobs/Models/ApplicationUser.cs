@@ -30,5 +30,9 @@ namespace TJobs.Models
         public List<Request>? Requests { get; set; }
         public List<ApplicationUserSkill>? Skills { get; set; }
         public ApplicationUserBrief? Brief { get; set; }
+
+        public string? File { get; set; }
+        public string? Img { get; set; }
+        public double AvgRate { get; set; }
     }
 }

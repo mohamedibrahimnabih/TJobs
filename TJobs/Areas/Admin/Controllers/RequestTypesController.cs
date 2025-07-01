@@ -3,6 +3,7 @@ using Mapster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using TJobs.DTOs.Requests;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace YourFavECommerce.Api.Controllers
 {
@@ -10,6 +11,7 @@ namespace YourFavECommerce.Api.Controllers
     [Route("api/[area]/[controller]")]
     [Area("Admin")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class RequestTypesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

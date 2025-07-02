@@ -82,83 +82,113 @@ namespace TJobs.Areas.Employer.Controllers
         [HttpPut("")]
         public async Task<IActionResult> Update([FromForm] ProfileRequest request)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var user = await _userManager.GetUserAsync(User)
                        ?? await _userManager.FindByIdAsync(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
 
             if (user is null) return NotFound();
 
-            user.FirstName = request.FirstName;
-            user.LastName = request.LastName;
-            user.Email = request.Email;
-            user.PhoneNumber = request.PhoneNumber;
-            user.City = request.City;
-            user.Street = request.Street;
-            user.State = request.State;
-            user.SSN = request.SSN;
-
-            if (request.Img is not null && request.Img.Length > 0)
+            try
             {
-                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(request.Img.FileName);
-                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles", fileName);
+                user.FirstName = request.FirstName;
+                user.LastName = request.LastName;
+                user.Email = request.Email;
+                user.PhoneNumber = request.PhoneNumber;
+                user.City = request.City;
+                user.Street = request.Street;
+                user.State = request.State;
+                user.SSN = request.SSN;
 
-                using (var stream = System.IO.File.Create(filePath))
+                // رفع الصورة
+                if (request.Img is not null && request.Img.Length > 0)
                 {
-                    await request.Img.CopyToAsync(stream);
+                    var fileName = Guid.NewGuid() + Path.GetExtension(request.Img.FileName);
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles", fileName);
+
+                    using (var stream = System.IO.File.Create(filePath))
+                    {
+                        await request.Img.CopyToAsync(stream);
+                    }
+
+                    // حذف الصورة القديمة
+                    if (!string.IsNullOrWhiteSpace(user.Img))
+                    {
+                        var oldFileName = Path.GetFileName(user.Img);
+                        var oldPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles", oldFileName);
+                        if (System.IO.File.Exists(oldPath))
+                        {
+                            System.IO.File.Delete(oldPath);
+                        }
+                    }
+
+                    user.Img = $"{Request.Scheme}://{Request.Host}/images/profiles/{fileName}";
                 }
 
-                // حذف القديم
-                if (!string.IsNullOrWhiteSpace(user.Img) && System.IO.File.Exists(Path.Combine("wwwroot", user.Img.Replace($"{Request.Scheme}://{Request.Host}/", ""))))
+                // رفع ملف الـ CV
+                if (request.CV is not null && request.CV.Length > 0)
                 {
-                    System.IO.File.Delete(Path.Combine("wwwroot", user.Img.Replace($"{Request.Scheme}://{Request.Host}/", "")));
+                    var fileName = Guid.NewGuid() + Path.GetExtension(request.CV.FileName);
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/files/cv", fileName);
+
+                    using (var stream = System.IO.File.Create(filePath))
+                    {
+                        await request.CV.CopyToAsync(stream);
+                    }
+
+                    // حذف القديم
+                    if (!string.IsNullOrWhiteSpace(user.File))
+                    {
+                        var oldFileName = Path.GetFileName(user.File);
+                        var oldPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/files/cv", oldFileName);
+                        if (System.IO.File.Exists(oldPath))
+                        {
+                            System.IO.File.Delete(oldPath);
+                        }
+                    }
+
+                    user.File = $"{Request.Scheme}://{Request.Host}/files/cv/{fileName}";
                 }
 
-                user.Img = $"{Request.Scheme}://{Request.Host}/images/profiles/{fileName}";
-            }
+                await _userManager.UpdateAsync(user);
 
-            if (request.CV is not null && request.CV.Length > 0)
-            {
-                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(request.CV.FileName);
-                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/files/cv", fileName);
+                // حذف الاهتمامات القديمة
+                var lastInterests = _context.ApplicationUserInterests
+                                             .Where(e => e.ApplicationUserId == user.Id);
+                _context.ApplicationUserInterests.RemoveRange(lastInterests);
 
-                using (var stream = System.IO.File.Create(filePath))
+                if (request.SkillsOrInterests is not null)
                 {
-                    await request.CV.CopyToAsync(stream);
+                    foreach (var item in request.SkillsOrInterests)
+                    {
+                        _context.ApplicationUserInterests.Add(new ApplicationUserInterest
+                        {
+                            ApplicationUserId = user.Id,
+                            Name = item
+                        });
+                    }
                 }
 
-                if (!string.IsNullOrWhiteSpace(user.File) && System.IO.File.Exists(Path.Combine("wwwroot", user.File.Replace($"{Request.Scheme}://{Request.Host}/", ""))))
-                {
-                    System.IO.File.Delete(Path.Combine("wwwroot", user.File.Replace($"{Request.Scheme}://{Request.Host}/", "")));
-                }
+                // حذف النبذة القديمة
+                var lastBriefs = _context.ApplicationUserBriefs
+                                          .Where(e => e.ApplicationUserId == user.Id);
+                _context.ApplicationUserBriefs.RemoveRange(lastBriefs);
 
-                user.File = $"{Request.Scheme}://{Request.Host}/files/cv/{fileName}";
-            }
-
-            await _userManager.UpdateAsync(user);
-
-            var lastInterests = _context.ApplicationUserInterests.Where(e => e.ApplicationUserId == user.Id);
-            _context.ApplicationUserInterests.RemoveRange(lastInterests);
-
-            foreach (var item in request.SkillsOrInterests)
-            {
-                _context.ApplicationUserInterests.Add(new ApplicationUserInterest
+                _context.ApplicationUserBriefs.Add(new ApplicationUserBrief
                 {
                     ApplicationUserId = user.Id,
-                    Name = item
+                    Description = request.Description ?? ""
                 });
+
+                await _context.SaveChangesAsync();
+
+                return NoContent();
             }
-
-            var lastBriefs = _context.ApplicationUserBriefs.Where(e => e.ApplicationUserId == user.Id);
-            _context.ApplicationUserBriefs.RemoveRange(lastBriefs);
-
-            _context.ApplicationUserBriefs.Add(new ApplicationUserBrief
+            catch (Exception ex)
             {
-                ApplicationUserId = user.Id,
-                Description = request.Description ?? ""
-            });
-
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+                return StatusCode(500, $"Server Error: {ex.Message}");
+            }
         }
 
     }

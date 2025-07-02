@@ -77,7 +77,7 @@ namespace TJobs.Areas.Employer.Controllers
 
             var requestCreated = _context.Requests.Add(requestRequest.Adapt<Request>());
             requestCreated.Entity.PublishDateTime = DateTime.UtcNow;
-            requestCreated.Entity.RequestStatus = RequestStatus.Pending;
+            requestCreated.Entity.RequestStatus = RequestStatus.Active;
             requestCreated.Entity.MainImg = $"{Request.Scheme}://{Request.Host}/images/{fileName}";
 
             var user = await _userManager.GetUserAsync(User);

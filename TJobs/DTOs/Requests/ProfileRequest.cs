@@ -13,7 +13,7 @@
         public List<string> SkillsOrInterests { get; set; } = new();
         public string? Description { get; set; }
 
-        public IFormFile? ProfileImage { get; set; }
+        public IFormFile? Img { get; set; }
         public IFormFile? CV { get; set; }
     }
 }

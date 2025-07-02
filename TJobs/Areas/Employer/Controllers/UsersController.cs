@@ -96,14 +96,14 @@ namespace TJobs.Areas.Employer.Controllers
             user.State = request.State;
             user.SSN = request.SSN;
 
-            if (request.ProfileImage is not null && request.ProfileImage.Length > 0)
+            if (request.Img is not null && request.Img.Length > 0)
             {
-                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(request.ProfileImage.FileName);
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(request.Img.FileName);
                 var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles", fileName);
 
                 using (var stream = System.IO.File.Create(filePath))
                 {
-                    await request.ProfileImage.CopyToAsync(stream);
+                    await request.Img.CopyToAsync(stream);
                 }
 
                 // حذف القديم

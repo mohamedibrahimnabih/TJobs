@@ -121,6 +121,7 @@ namespace TJobs.Areas.Worker.Controllers
                 .OrderByDescending(e => e.ApplyDateTime)
                 .Select(e => new
                 {
+                    e.RequestId,
                     e.Request.Title,
                     e.Request.PublishDateTime,
                     ContactEmail = e.Request.ApplicationUser.Email
@@ -129,5 +130,39 @@ namespace TJobs.Areas.Worker.Controllers
 
             return Ok(new { currentJobs });
         }
+
+        [HttpGet("EndedJobs")]
+        public async Task<IActionResult> EndedJobs()
+        {
+            var user = await _userManager.GetUserAsync(User)
+                       ?? await _userManager.FindByIdAsync(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
+
+            if (user is null)
+                return NotFound();
+
+            var endedJobs = await _context.UserRequests
+                .Include(ur => ur.Request).ThenInclude(r => r.ApplicationUser)
+                .Where(ur =>
+                    ur.ApplicationUserId == user.Id &&
+                    ur.UserRequestStatus == UserRequestStatus.Completed &&
+                    ur.Request.RequestStatus == RequestStatus.Completed
+                )
+                .OrderByDescending(ur => ur.Request.DateTime)
+                .Select(ur => new
+                {
+                    EmployerId = ur.Request.ApplicationUserId,
+                    RequestId = ur.Request.Id,
+                    Title = ur.Request.Title,
+                    EmployerName = ur.Request.ApplicationUser.FirstName + " " + ur.Request.ApplicationUser.LastName,
+                    EmployerEmail = ur.Request.ApplicationUser.Email,
+                    EndDate = ur.Request.DateTime,
+                    Description = ur.Request.Description,
+                    EmployerRate = ur.Request.ApplicationUser.AvgRate
+                })
+                .ToListAsync();
+
+            return Ok(new { endedJobs });
+        }
+
     }
 }

@@ -42,6 +42,15 @@ namespace TJobs.Areas.Employer.Controllers
                 user = await _userManager.FindByIdAsync(ApplicationUserId);
             }
 
+            var requests = _context.Requests.Where(e => e.ApplicationUserId == user.Id).Select(e => e.Id).ToList();
+
+            List<UserRequest> userRequests = new();
+
+            foreach (var item in requests)
+            {
+                userRequests = _context.UserRequests.Where(e => e.RequestId == item).ToList();
+            }
+
             var employerDashboardStatistics = new EmployerDashboardStatistics()
             {
                 TotalNumberOfRequests = _context.Requests.Where(e=>e.ApplicationUserId == user.Id).Count(),
@@ -49,7 +58,8 @@ namespace TJobs.Areas.Employer.Controllers
                 TotalNumberOfNotAcceptedRequests = _context.Requests.Where(e => e.ApplicationUserId == user.Id && e.RequestStatus == RequestStatus.NotAccepted).Count(),
                 TotalNumberOfPendingRequests = _context.Requests.Where(e => e.ApplicationUserId == user.Id && e.RequestStatus == RequestStatus.Pending).Count(),
                 TotalNumberOfCompletedRequests = _context.Requests.Where(e => e.ApplicationUserId == user.Id && e.RequestStatus == RequestStatus.Completed).Count(),
-                TotalNumberOfExpiredRequests = _context.Requests.Where(e => e.ApplicationUserId == user.Id && e.RequestStatus == RequestStatus.Expired).Count()
+                TotalNumberOfExpiredRequests = _context.Requests.Where(e => e.ApplicationUserId == user.Id && e.RequestStatus == RequestStatus.Expired).Count(),
+                Applications = userRequests.Count()
             };
 
             return Ok(employerDashboardStatistics);

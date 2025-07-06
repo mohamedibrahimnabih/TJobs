@@ -2,11 +2,11 @@
 {
     public enum RequestStatus
     {
-        Pending, 
-        Active,
-        Expired,
-        NotAccepted,
-        Completed
+        Pending = 0, 
+        Active = 1,
+        Expired = 2,
+        NotAccepted = 3,
+        Completed = 4
     }
 
     public class Request

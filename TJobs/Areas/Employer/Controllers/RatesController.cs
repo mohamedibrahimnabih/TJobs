@@ -40,6 +40,9 @@ namespace TJobs.Areas.Employer.Controllers
                 user = await _userManager.FindByIdAsync(ApplicationUserId);
             }
 
+            if (user is null)
+                return Unauthorized();
+
             // تحقق إن المستخدم هو صاحب المشروع
             var request = _context.Requests.FirstOrDefault(e => e.Id == model.RequestId && e.ApplicationUserId == user.Id);
             if (request == null)
@@ -102,6 +105,9 @@ namespace TJobs.Areas.Employer.Controllers
 
                 user = await _userManager.FindByIdAsync(applicationUserId);
             }
+
+            if (user is null)
+                return Unauthorized();
 
             var ratings = await _context.WorkerRatings
                 .Include(r => r.Worker)

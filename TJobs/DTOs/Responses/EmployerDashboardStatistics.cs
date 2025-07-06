@@ -9,5 +9,6 @@
         public int TotalNumberOfPendingRequests { get; set; }
         public int TotalNumberOfCompletedRequests { get; set; }
         public int TotalNumberOfExpiredRequests { get; set; }
+        public int Applications { get; set; }
     }
 }

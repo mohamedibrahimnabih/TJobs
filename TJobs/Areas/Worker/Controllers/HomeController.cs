@@ -47,34 +47,29 @@ namespace TJobs.Areas.Worker.Controllers
                 .ToListAsync();
 
             // الوظائف الحالية (تم قبول العامل فيها)
-            var currentJobs = await _context.UserRequests
+            var currentJobs = _context.UserRequests
                 .Include(e => e.Request).ThenInclude(r => r.ApplicationUser)
                 .Where(e => e.ApplicationUserId == user.Id && e.UserRequestStatus == UserRequestStatus.Accepted)
-                .Select(e => new
-                {
-                    e.Request.Title,
-                    e.Request.PublishDateTime,
-                    ContactEmail = e.Request.ApplicationUser.Email
-                })
-                .ToListAsync();
+                .Count();
 
             // الوظائف المكتملة
-            var completedJobs = await _context.UserRequests
+            var completedJobs = _context.UserRequests
                 .Include(e => e.Request).ThenInclude(r => r.ApplicationUser)
                 .Where(e => e.ApplicationUserId == user.Id && e.UserRequestStatus == UserRequestStatus.Completed)
-                .Select(e => new
-                {
-                    e.Request.Title,
-                    e.Request.PublishDateTime,
-                    ContactEmail = e.Request.ApplicationUser.Email
-                })
-                .ToListAsync();
+                .Count();
+
+            // الطلبات المرسله
+            var sentApplications = _context.UserRequests
+                .Include(e => e.Request).ThenInclude(r => r.ApplicationUser)
+                .Where(e => e.ApplicationUserId == user.Id)
+                .Count();
 
             return Ok(new
             {
-                requiredJobs = requiredJobs.Adapt<List<RequestUserResponse>>(),
+                requiredJobs,
                 currentJobs,
-                completedJobs
+                completedJobs,
+                sentApplications
             });
         }
 

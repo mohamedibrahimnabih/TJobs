@@ -148,6 +148,7 @@ namespace TJobs.Areas.Employer.Controllers
         }
 
         [HttpDelete("{id}")]
+        [AllowAnonymous]
         public IActionResult Delete([FromRoute] int id)
         {
             var requestInDb = _context.Requests.Find(id);
@@ -156,10 +157,10 @@ namespace TJobs.Areas.Employer.Controllers
             {
 
                 // Delete Old Img
-                if (System.IO.File.Exists(requestInDb.MainImg))
-                {
-                    System.IO.File.Delete(requestInDb.MainImg);
-                }
+                //if (System.IO.File.Exists(requestInDb.MainImg))
+                //{
+                //    System.IO.File.Delete(requestInDb.MainImg);
+                //}
 
                 _context.Remove(requestInDb);
                 _context.SaveChanges();
@@ -204,11 +205,24 @@ namespace TJobs.Areas.Employer.Controllers
         [HttpPatch("AcceptApplication")]
         public IActionResult AcceptRequest([FromQuery] int requestId, string userId)
         {
-            var userRequestInDb = _context.UserRequests.FirstOrDefault(e=>e.RequestId == requestId && e.ApplicationUserId == userId);
+            var userRequestInDb = _context.UserRequests
+                .Include(ur => ur.Request) 
+                .FirstOrDefault(e => e.RequestId == requestId && e.ApplicationUserId == userId);
 
             if (userRequestInDb is not null)
             {
                 userRequestInDb.UserRequestStatus = UserRequestStatus.Accepted;
+
+                // إضافة إشعار للمستخدم اللي تم قبوله
+                var notification = new Notification
+                {
+                    UserId = userId,
+                    Message = $"تم قبول طلبك للعمل على وظيفة: {userRequestInDb.Request.Title}",
+                    Type = NotificationType.Accept
+                };
+
+                _context.Notifications.Add(notification);
+
                 _context.SaveChanges();
 
                 return NoContent();
@@ -216,6 +230,7 @@ namespace TJobs.Areas.Employer.Controllers
 
             return NotFound();
         }
+
 
         [HttpPatch("DeAcceptApplication")]
         public IActionResult DeAcceptApplication([FromQuery] int requestId, string userId)

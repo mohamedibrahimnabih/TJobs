@@ -24,6 +24,7 @@
         public string ApplicationUserFirstName { get; set; } = string.Empty;
         public string ApplicationUserLastName { get; set; } = string.Empty;
         public string ApplicationUserEmail { get; set; } = string.Empty;
+        public string ApplicationUserAvgRate { get; set; } = string.Empty;
         public string ApplicationUserPhoneNumber { get; set; } = string.Empty;
     }
 }

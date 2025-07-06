@@ -19,5 +19,8 @@ namespace TJobs.Data
         public DbSet<ApplicationUserBrief> ApplicationUserBriefs { get; set; }
         public DbSet<UserRequest> UserRequests { get; set; }
         public DbSet<WorkerRating> WorkerRatings { get; set; }
+        public DbSet<EmployerRating> EmployerRatings { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
     }
 }

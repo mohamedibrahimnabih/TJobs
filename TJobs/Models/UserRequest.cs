@@ -4,10 +4,10 @@ namespace TJobs.Models
 {
     public enum UserRequestStatus
     {
-        Pending,
-        Accepted,
-        Rejected,
-        Completed
+        Pending = 0,
+        Accepted = 1,
+        Rejected = 2,
+        Completed = 3
     }
 
     public class UserRequest

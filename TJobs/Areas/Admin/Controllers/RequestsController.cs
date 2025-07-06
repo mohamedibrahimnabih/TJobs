@@ -133,6 +133,7 @@ namespace TJobs.Areas.Admin.Controllers
         }
 
         [HttpDelete("{id}")]
+        [AllowAnonymous]
         public IActionResult Delete([FromRoute] int id)
         {
             var requestInDb = _context.Requests.Find(id);
@@ -141,10 +142,10 @@ namespace TJobs.Areas.Admin.Controllers
             {
 
                 // Delete Old Img
-                if (System.IO.File.Exists(requestInDb.MainImg))
-                {
-                    System.IO.File.Delete(requestInDb.MainImg);
-                }
+                //if (System.IO.File.Exists(requestInDb.MainImg))
+                //{
+                //    System.IO.File.Delete(requestInDb.MainImg);
+                //}
 
                 _context.Remove(requestInDb);
                 _context.SaveChanges();

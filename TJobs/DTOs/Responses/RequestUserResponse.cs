@@ -21,6 +21,7 @@
         public int Traffic { get; set; }
 
         public string RequestTypeName { get; set; } = string.Empty;
+        public string ApplicationUserId { get; set; } = string.Empty;
         public string ApplicationUserFirstName { get; set; } = string.Empty;
         public string ApplicationUserLastName { get; set; } = string.Empty;
         public string ApplicationUserEmail { get; set; } = string.Empty;

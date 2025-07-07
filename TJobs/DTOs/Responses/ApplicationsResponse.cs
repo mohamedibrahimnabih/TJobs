@@ -12,5 +12,6 @@
         public DateTime ApplyDateTime { get; set; }
         public string? ApplicationUserFile { get; set; } = string.Empty;
         public UserRequestStatus UserRequestStatus { get; set; }
+        public string ApplicationUserAvgRate { get; set; } = string.Empty;
     }
 }
